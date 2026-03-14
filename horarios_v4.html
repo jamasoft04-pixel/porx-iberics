@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Horarios">
 <link rel="manifest" href="manifest.json">
-<title>Horarios · Granollers</title>
+<title>Porxada Iberics - Granollers</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -53,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .role-admin{background:#E6F1FB;color:var(--blue2);border:1px solid #B5D4F4}
 .role-super{background:#EEEDFE;color:#3C3489;border:1px solid #AFA9EC}
 .app-body{flex:1;max-width:1200px;width:100%;margin:0 auto;padding:1.25rem 1rem}
-
+ 
 /* TABS */
 .tabs{display:flex;gap:2px;margin-bottom:1.25rem;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tab{padding:8px 13px;font-size:13px;border:none;background:none;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-weight:500}
@@ -1495,7 +1495,7 @@ document.addEventListener('keydown', e=>{
 
 // ══ FICHAJES — PANEL ADMIN ════════════════════════════════════
 async function loadFichajes(){
-  if(!isAdmin()) return;
+  
   const dateEl = document.getElementById('fichajesDate');
   const date = dateEl?.value || isoDate(new Date());
   if(dateEl && !dateEl.value) dateEl.value = date;
