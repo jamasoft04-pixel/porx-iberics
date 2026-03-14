@@ -620,6 +620,12 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
-<script data-cfasync="false" src="app.js"></script>
+<script data-cfasync="false">
+fetch('app.js').then(r=>r.text()).then(code=>{
+  const s=document.createElement('script');
+  s.textContent=code;
+  document.head.appendChild(s);
+});
+</script>
 </body>
 </html>
