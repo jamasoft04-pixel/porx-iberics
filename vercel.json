@@ -1,5 +1,4 @@
 {
-  "_updated": "2026-03-14b",
   "rewrites": [
     { "source": "/app.js", "destination": "/app.js" },
     { "source": "/sw.js", "destination": "/sw.js" },
