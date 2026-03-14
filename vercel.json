@@ -1,6 +1,9 @@
 {
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-14b",
   "rewrites": [
+    { "source": "/app.js", "destination": "/app.js" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/(.*)", "destination": "/horarios_v4.html" }
   ],
   "headers": [
