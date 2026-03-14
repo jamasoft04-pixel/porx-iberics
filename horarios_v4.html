@@ -363,6 +363,8 @@ tr:last-child td{border-bottom:none}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="date" id="fichajesDate" onchange="loadFichajes()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
           <button class="btn btn-sm" onclick="loadFichajes()">Actualizar</button>
+          <button class="btn btn-sm btn-export" onclick="exportFichajesDiaPDF()">PDF</button>
+          <button class="btn btn-sm btn-export" onclick="exportFichajesDiaXLS()">Excel</button>
         </div>
       </div>
       <div id="fichajesStats" class="fich-today-grid"></div>
@@ -380,6 +382,28 @@ tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="stitle">PINs de trabajadores</div>
         <div id="pinsList"></div>
+      </div>
+
+      <!-- HISTORIAL FICHAJES -->
+      <div class="card" style="margin-top:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div class="stitle" style="margin:0;padding:0;border:none">Historial de fichajes</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="histWorker" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+              <option value="all">Todos los trabajadores</option>
+            </select>
+            <input type="date" id="histDesde" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+            <input type="date" id="histHasta" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+            <button class="btn btn-sm btn-primary" onclick="loadHistorial()">Buscar</button>
+            <button class="btn btn-sm btn-export" onclick="exportHistorialPDF()">PDF</button>
+            <button class="btn btn-sm btn-export" onclick="exportHistorialXLS()">Excel</button>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <button class="btn btn-sm btn-warn" onclick="generarFichajesEjemplo()" id="btnGenFichajes">Generar fichajes de ejemplo (datos históricos)</button>
+          <span id="genFichajesMsg" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
+        </div>
+        <div id="historialList"></div>
       </div>
     </div>
 
@@ -734,7 +758,7 @@ async function loadAll(){
   if(isAdmin()) usuarios=r[4]?.data||[];
   renderWorkers(); renderFestivos(); renderSchedule();
   renderCalendar(); renderVacaciones(); renderSummary();
-  updateAllSelects(); populateSumMonth();
+  updateAllSelects(); updateHistWorkerSelect(); populateSumMonth();
   if(isAdmin()){renderUsuarios();loadAudit();loadFichajes();}
 }
 
@@ -1674,8 +1698,27 @@ function renderTienda(){
 
     let mStart=null, mEnd=null, eStart=null, eEnd=null;
     if(st.type === 'work'){
-      if(w.turno==='morning'||w.turno==='both'){ mStart={h:8,m:30}; mEnd={h:14,m:0}; }
-      if(w.turno==='evening'||w.turno==='both'){ eStart={h:17,m:0}; eEnd={h:22,m:0}; }
+      const totalMins = Math.round(w.horas/5*60); // minutes per day from contract
+      if(w.turno==='morning'){
+        // All hours in morning starting 8:30
+        mStart={h:8,m:30};
+        const endMins = 8*60+30+totalMins;
+        mEnd={h:Math.floor(endMins/60),m:endMins%60};
+      } else if(w.turno==='evening'){
+        // All hours in evening starting 17:00
+        eStart={h:17,m:0};
+        const endMins = 17*60+totalMins;
+        eEnd={h:Math.floor(endMins/60),m:endMins%60};
+      } else {
+        // both: split evenly — morning starts 8:30, evening starts 17:00
+        const halfMins = Math.round(totalMins/2);
+        mStart={h:8,m:30};
+        const mEndMins = 8*60+30+halfMins;
+        mEnd={h:Math.floor(mEndMins/60),m:mEndMins%60};
+        eStart={h:17,m:0};
+        const eEndMins = 17*60+halfMins;
+        eEnd={h:Math.floor(eEndMins/60),m:eEndMins%60};
+      }
     }
     return {w, st, dh, mStart, mEnd, eStart, eEnd};
   });
@@ -1776,7 +1819,16 @@ function showTab(name,btn){
   if(name==='summary'){populateSumMonth();renderSummary();}
   if(name==='vacaciones')renderVacaciones();
   if(name==='audit')loadAudit();
-  if(name==='fichajes'){document.getElementById('fichajesDate').value=isoDate(new Date());loadFichajes();}
+  if(name==='fichajes'){
+    document.getElementById('fichajesDate').value=isoDate(new Date());
+    loadFichajes();
+    updateHistWorkerSelect();
+    if(!document.getElementById('histHasta').value){
+      const hoy=new Date(),priMes=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+      document.getElementById('histDesde').value=isoDate(priMes);
+      document.getElementById('histHasta').value=isoDate(hoy);
+    }
+  }
 }
 
 // ══ INIT ══════════════════════════════════════════════════════
