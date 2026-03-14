@@ -441,6 +441,7 @@ tr:last-child td{border-bottom:none}
         <button class="btn btn-sm" onclick="tiendaChangeDay(-1)">&#8592; Anterior</button>
         <span id="tiendaDayLabel" style="font-size:15px;font-weight:700;flex:1;text-align:center"></span>
         <button class="btn btn-sm" onclick="tiendaChangeDay(1)">Siguiente &#8594;</button>
+        <input type="date" id="tiendaDatePicker" onchange="tiendaGoDate(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
         <button class="btn btn-sm" onclick="tiendaGoToday()" style="color:var(--blue);border-color:var(--blue)">Hoy</button>
       </div>
       <div class="legend" style="margin-bottom:12px">
@@ -1632,8 +1633,26 @@ if(pins) pins.innerHTML = workers.map(w=>`
 </div>`).join('');
 }
 let tiendaDayOffset = 0;
-function tiendaChangeDay(n){ tiendaDayOffset += n; renderTienda(); }
-function tiendaGoToday(){ tiendaDayOffset = 0; renderTienda(); }
+function tiendaChangeDay(n){
+  tiendaDayOffset += n;
+  const d = new Date(); d.setDate(d.getDate()+tiendaDayOffset);
+  const dp = document.getElementById('tiendaDatePicker');
+  if(dp) dp.value = isoDate(d);
+  renderTienda();
+}
+function tiendaGoToday(){
+  tiendaDayOffset = 0;
+  const dp = document.getElementById('tiendaDatePicker');
+  if(dp) dp.value = isoDate(new Date());
+  renderTienda();
+}
+function tiendaGoDate(val){
+  if(!val) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sel = new Date(val+'T12:00:00'); sel.setHours(0,0,0,0);
+  tiendaDayOffset = Math.round((sel-today)/(1000*60*60*24));
+  renderTienda();
+}
 function renderTienda(){
 const today = new Date(); today.setHours(0,0,0,0);
 const date = new Date(today); date.setDate(today.getDate() + tiendaDayOffset);
@@ -1911,7 +1930,11 @@ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
 document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
 document.getElementById('tab-'+name).classList.add('active');
 if(btn)btn.classList.add('active');
-if(name==='tienda')renderTienda();
+if(name==='tienda'){
+  const dp=document.getElementById('tiendaDatePicker');
+  if(dp&&!dp.value) dp.value=isoDate(new Date());
+  renderTienda();
+}
 if(name==='schedule')renderSchedule();
 if(name==='calendar')renderCalendar();
 if(name==='summary'){populateSumMonth();renderSummary();}
