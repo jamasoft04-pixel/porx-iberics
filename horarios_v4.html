@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Horarios">
 <link rel="manifest" href="manifest.json">
-<title>Porxada Iberics - Horarios</title>
+<title>Horarios · Granollers</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -224,6 +224,52 @@ tr:last-child td{border-bottom:none}
 /* USER ROW */
 .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px}
 
+/* FICHAJE SCREEN */
+#scFichaje{align-items:center;justify-content:center;padding:1rem;background:var(--bg3);flex-direction:column;gap:0}
+.fich-card{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rlg);width:100%;max-width:420px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.fich-header{background:var(--blue);padding:1.5rem;text-align:center;color:#fff}
+.fich-header h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.fich-header .fich-time{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin:8px 0 4px}
+.fich-header .fich-date{font-size:13px;opacity:.8}
+.fich-body{padding:1.5rem}
+.pin-display{display:flex;justify-content:center;gap:10px;margin-bottom:1.5rem}
+.pin-dot{width:48px;height:56px;border:2px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--text);background:var(--bg2);transition:all .15s}
+.pin-dot.filled{border-color:var(--blue);background:var(--blue);color:#fff}
+.pin-dot.error{border-color:var(--red);background:#FCEBEB;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.numpad-btn{padding:16px;font-size:22px;font-weight:600;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);cursor:pointer;text-align:center;transition:background .1s;user-select:none}
+.numpad-btn:hover{background:var(--bg2)}
+.numpad-btn:active{background:var(--bg3);transform:scale(.96)}
+.numpad-btn.del{font-size:16px;color:var(--text2)}
+.numpad-btn.zero{grid-column:2}
+.fich-msg{text-align:center;font-size:13px;padding:10px;border-radius:var(--r);margin-bottom:8px;min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px}
+.fich-msg.success{background:#EAF3DE;color:#3B6D11;font-weight:600}
+.fich-msg.error{background:#FCEBEB;color:var(--red);font-weight:600}
+.fich-link{display:block;text-align:center;margin-top:12px;font-size:12px;color:var(--text2);cursor:pointer;text-decoration:underline}
+
+/* FICHAJES PANEL (admin) */
+.fich-today-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.fich-stat{background:var(--bg2);border-radius:var(--r);padding:10px;text-align:center}
+.fich-stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:2px}
+.fich-stat-val{font-size:22px;font-weight:700}
+.fich-row{display:grid;grid-template-columns:1fr repeat(4,80px) 70px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:12px}
+.fich-row.header{background:var(--blue);color:#fff;font-weight:700;font-size:11px;border-color:var(--blue)}
+.fich-row.absent{opacity:.45}
+.fich-time-cell{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.fich-time-cell.empty{color:var(--text3)}
+.fich-badge-in{background:#EAF3DE;color:#3B6D11;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.fich-badge-out{background:#FCEBEB;color:var(--red);padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.fich-badge-pause{background:#FAEEDA;color:#854F0B;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.fich-badge-none{background:var(--bg2);color:var(--text3);padding:2px 7px;border-radius:10px;font-size:11px;display:inline-block}
+.pin-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:4px 10px;font-size:13px}
+.pin-chip code{font-family:monospace;font-size:16px;font-weight:700;letter-spacing:4px;color:var(--blue)}
+.pin-chip .copy-btn{cursor:pointer;color:var(--text2);font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg)}
+.pin-chip .copy-btn:hover{background:var(--bg2)}
+@media(max-width:600px){
+  .fich-row{grid-template-columns:1fr repeat(2,70px);font-size:11px}
+  .fich-row .fich-hide-sm{display:none}
+}
 /* INSTALL BANNER */
 #installBanner{display:none;background:var(--blue);color:#fff;padding:10px 1rem;font-size:13px;align-items:center;gap:10px;flex-shrink:0}
 #installBanner button{background:#fff;color:var(--blue);border:none;border-radius:var(--r);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer}
@@ -301,6 +347,7 @@ tr:last-child td{border-bottom:none}
       <button class="tab" onclick="showTab('report',this)">Informe</button>
       <button class="tab" id="tabUsuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</button>
       <button class="tab" id="tabAudit" style="display:none" onclick="showTab('audit',this)">Auditoría</button>
+      <button class="tab" id="tabFichajes" style="display:none" onclick="showTab('fichajes',this)">Fichajes</button>
     </div>
 
     <!-- TRABAJADORES -->
@@ -461,6 +508,73 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+
+<!-- FICHAJE (pantalla kiosko) -->
+<div class="screen" id="scFichaje">
+  <div class="fich-card">
+    <div class="fich-header">
+      <h1>Porxada Iberics</h1>
+      <div class="fich-time" id="fichTime">00:00:00</div>
+      <div class="fich-date" id="fichDate"></div>
+    </div>
+    <div class="fich-body">
+      <div class="pin-display">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="fich-msg" id="fichMsg">Introduce tu PIN de 4 dígitos</div>
+      <div class="numpad">
+        <button class="numpad-btn" onclick="pinPress('1')">1</button>
+        <button class="numpad-btn" onclick="pinPress('2')">2</button>
+        <button class="numpad-btn" onclick="pinPress('3')">3</button>
+        <button class="numpad-btn" onclick="pinPress('4')">4</button>
+        <button class="numpad-btn" onclick="pinPress('5')">5</button>
+        <button class="numpad-btn" onclick="pinPress('6')">6</button>
+        <button class="numpad-btn" onclick="pinPress('7')">7</button>
+        <button class="numpad-btn" onclick="pinPress('8')">8</button>
+        <button class="numpad-btn" onclick="pinPress('9')">9</button>
+        <button class="numpad-btn del" onclick="pinDel()">⌫</button>
+        <button class="numpad-btn zero" onclick="pinPress('0')">0</button>
+        <button class="numpad-btn del" onclick="pinClear()">✕</button>
+      </div>
+      <a class="fich-link" onclick="showScreen('scLogin')">Acceso administrador</a>
+    </div>
+
+    <!-- FICHAJES -->
+    <div class="panel" id="tab-fichajes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:2px">Control de asistencia</div>
+          <div style="font-size:12px;color:var(--text2)" id="fichajesFechaLabel"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="date" id="fichajesDate" onchange="loadFichajes()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+          <button class="btn btn-sm" onclick="loadFichajes()">Actualizar</button>
+          <button class="btn btn-sm btn-blue" onclick="showScreen('scFichaje')">Abrir terminal fichaje</button>
+        </div>
+      </div>
+      <div id="fichajesStats" class="fich-today-grid" style="margin-bottom:1rem"></div>
+      <div class="card" style="padding:.75rem">
+        <div class="fich-row header">
+          <span>Trabajador</span>
+          <span style="text-align:center">Entrada</span>
+          <span style="text-align:center" class="fich-hide-sm">Pausa</span>
+          <span style="text-align:center" class="fich-hide-sm">Vuelta</span>
+          <span style="text-align:center">Salida</span>
+          <span style="text-align:center">Horas</span>
+        </div>
+        <div id="fichajesList"></div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="stitle">PINs de trabajadores</div>
+        <div id="pinsList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══ CONSTANTES ════════════════════════════════════════════════
 const DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -504,7 +618,7 @@ function installPWA(){
 }
 
 // ══ PANTALLAS ════════════════════════════════════════════════
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='scFichaje'){startFichClock();pinClear();}}
 
 // ══ CONFIG ════════════════════════════════════════════════════
 async function saveConfig(){
@@ -580,6 +694,7 @@ function applyRoleUI(){
   rb.className='role-badge '+(isAdmin()?'role-admin':'role-super');
   document.getElementById('tabUsuarios').style.display=isAdmin()?'':'none';
   document.getElementById('tabAudit').style.display=isAdmin()?'':'none';
+  document.getElementById('tabFichajes').style.display=isAdmin()?'':'none';
   document.getElementById('addWorkerCard').style.display=isAdmin()?'block':'none';
   document.getElementById('addVacCard').style.display=isAdmin()?'block':'none';
 }
@@ -787,7 +902,7 @@ function renderWorkers(){
   const el=document.getElementById('workersList');
   if(!workers.length){el.innerHTML='<div class="empty">Sin trabajadores.</div>';return;}
   const today=new Date();today.setHours(0,0,0,0);
-  const sL={both:'M+T',morning:'Mañana',evening:'Tarde'};
+  const sL={both:'8:30–14:00 y 17:00–22:00',morning:'8:30–14:00',evening:'17:00–22:00'};
   el.innerHTML='<div class="workers-list">'+workers.map(w=>{
     const st=workerStatus(w,new Date(today));
     const bc=st==='baja'?'badge-baja':st==='vac'?'badge-vac':st==='activo'?'badge-activo':st==='pending'?'badge-pending':'badge-inactivo';
@@ -904,7 +1019,7 @@ function renderCalendar(){
       if(st.type==='work'){
         wH+=dh;wDays++;
         pillClass=w.turno==='both'?'both':'work';
-        pillHTML=`<div class="cal-pill ${pillClass}">${w.turno==='both'?'M+T':w.turno==='morning'?'Mañana':'Tarde'}</div>`;
+        pillHTML=`<div class="cal-pill ${pillClass}">${w.turno==='both'?'8:30–14:00 / 17:00–22:00':w.turno==='morning'?'8:30–14:00':'17:00–22:00'}</div>`;
       } else if(st.type==='baja'){bDays++;pillHTML=`<div class="cal-pill baja">Baja</div>`;}
       else if(st.type==='vac'){vDays++;pillHTML=`<div class="cal-pill vac">Vac.</div>`;}
       else if(st.type==='festivo'){festDays++;pillHTML=`<div class="cal-pill fest" title="${st.name}">Festivo</div>`;}
@@ -936,12 +1051,12 @@ function renderSchedule(){
     html+=`<th class="dc" style="${isT?'color:var(--blue)':''}${isF?';background:#EEEDFE':''}">${DAYS[d.getDay()]}<br><span style="font-size:10px;font-weight:400">${fmtDate(d)}</span></th>`;
   });
   html+='<th class="dc">Total</th></tr></thead><tbody>';
-  const sLab={both:'M+T',morning:'M',evening:'T'};
+  const sLab={both:'8:30–14:00 / 17:00–22:00',morning:'8:30–14:00',evening:'17:00–22:00'};
   workers.forEach(w=>{
     let wH=0;
     const cells=dates.map(d=>{
       const st=getDayStatus(w,d),dh=Math.round(w.horas/5*10)/10;
-      if(st.type==='work'){wH+=dh;if(w.turno==='both')return`<span class="dy-work">M ${Math.round(dh/2*10)/10}h</span><br><span class="dy-eve" style="margin-top:2px;display:inline-block">T ${Math.round(dh/2*10)/10}h</span>`;if(w.turno==='morning')return`<span class="dy-work">M ${dh}h</span>`;return`<span class="dy-eve">T ${dh}h</span>`;}
+      if(st.type==='work'){wH+=dh;if(w.turno==='both')return`<span class="dy-work">8:30–14:00 · ${Math.round(dh/2*10)/10}h</span><br><span class="dy-eve" style="margin-top:2px;display:inline-block">17:00–22:00 · ${Math.round(dh/2*10)/10}h</span>`;if(w.turno==='morning')return`<span class="dy-work">8:30–14:00 · ${dh}h</span>`;return`<span class="dy-eve">17:00–22:00 · ${dh}h</span>`;}
       if(st.type==='sunday'||st.type==='inactive')return'<span class="dy-off">—</span>';
       if(st.type==='libre')return'<span class="dy-libre">Libre</span>';
       if(st.type==='baja')return'<span class="dy-baja">Baja</span>';
@@ -1040,7 +1155,7 @@ function generateReport(){
       }
       const wb=workerBajas(w.id);
       reportData.push({worker:w,monthData,totals:{totalH:Math.round(totalH*10)/10,totalWork,totalFest,totalBaja,totalVac},bajas:wb,vacs:workerVacs(w.id)});
-      const sLab={both:'Mañana+Tarde',morning:'Solo mañana',evening:'Solo tarde'};
+      const sLab={both:'8:30–14:00 y 17:00–22:00',morning:'Solo mañana (8:30–14:00)',evening:'Solo tarde (17:00–22:00)'};
       html+=`<div class="card" style="margin-bottom:1rem">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <div class="avatar">${initials(w.nombre)}</div>
@@ -1277,6 +1392,200 @@ function renderUsuarios(){
   }).join('');
 }
 
+
+// ══ FICHAJE — KIOSKO ══════════════════════════════════════════
+let pinBuffer = '';
+let fichClockInterval = null;
+
+function startFichClock(){
+  if(fichClockInterval) clearInterval(fichClockInterval);
+  function tick(){
+    const now = new Date();
+    const t = document.getElementById('fichTime');
+    const d = document.getElementById('fichDate');
+    if(t) t.textContent = now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    if(d) d.textContent = now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }
+  tick();
+  fichClockInterval = setInterval(tick, 1000);
+}
+
+function pinPress(digit){
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDisplay();
+  if(pinBuffer.length === 4) setTimeout(processFichaje, 200);
+}
+
+function pinDel(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDisplay();
+}
+
+function pinClear(){
+  pinBuffer = '';
+  updatePinDisplay();
+  setFichMsg('Introduce tu PIN de 4 dígitos','');
+}
+
+function updatePinDisplay(){
+  for(let i=0;i<4;i++){
+    const dot = document.getElementById('pd'+i);
+    if(!dot) continue;
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+    dot.textContent = i < pinBuffer.length ? '●' : '';
+  }
+}
+
+function setFichMsg(text, type){
+  const el = document.getElementById('fichMsg');
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'fich-msg' + (type ? ' '+type : '');
+}
+
+async function processFichaje(){
+  const pin = pinBuffer;
+  pinBuffer = '';
+
+  // Determinar tipo según último fichaje del día
+  const hoy = isoDate(new Date());
+  const {data: ults} = await sb.from('fichajes')
+    .select('tipo')
+    .eq('fecha', hoy)
+    .order('creado_en', {ascending: false})
+    .limit(1)
+    .then ? sb.from('fichajes').select('tipo,trabajador_id').eq('fecha',hoy).order('creado_en',{ascending:false}).limit(100) : {data:[]};
+
+  // Llamar función RPC para fichar
+  const tipo = getTipoFichaje(pin, ults?.data || []);
+  const {data, error} = await sb.rpc('fichar_con_pin', {p_pin: pin, p_tipo: tipo});
+
+  if(error || !data?.ok){
+    const msg = data?.error || error?.message || 'Error al fichar';
+    setFichMsg('❌ ' + msg, 'error');
+    for(let i=0;i<4;i++) document.getElementById('pd'+i)?.classList.add('error');
+    setTimeout(()=>{ pinClear(); }, 2000);
+    return;
+  }
+
+  const tipoLabel = {entrada:'✅ Entrada', pausa_inicio:'⏸ Pausa iniciada', pausa_fin:'▶ Vuelta de pausa', salida:'🏁 Salida'}[data.tipo] || data.tipo;
+  setFichMsg(`${tipoLabel} · ${data.nombre} · ${data.hora}`, 'success');
+  updatePinDisplay();
+  setTimeout(()=>{ pinClear(); }, 3000);
+}
+
+async function getTipoFichaje(pin, todayFichajes){
+  // Get last fichaje for this specific pin worker
+  const {data:worker} = await sb.from('trabajadores').select('id').eq('pin',pin).single().catch(()=>({data:null}));
+  if(!worker) return 'entrada';
+  const workerFichajes = (todayFichajes||[]).filter(f=>f.trabajador_id===worker.id);
+  const ultimo = workerFichajes[0]?.tipo;
+  if(!ultimo || ultimo==='salida') return 'entrada';
+  if(ultimo==='entrada') return 'pausa_inicio';
+  if(ultimo==='pausa_inicio') return 'pausa_fin';
+  if(ultimo==='pausa_fin') return 'salida';
+  return 'entrada';
+}
+
+// Keyboard support for kiosko
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('scFichaje')?.classList.contains('active')){
+    if(e.key>='0'&&e.key<='9') pinPress(e.key);
+    if(e.key==='Backspace') pinDel();
+    if(e.key==='Escape') pinClear();
+  }
+});
+
+// ══ FICHAJES — PANEL ADMIN ════════════════════════════════════
+async function loadFichajes(){
+  if(!isAdmin()) return;
+  const dateEl = document.getElementById('fichajesDate');
+  const date = dateEl?.value || isoDate(new Date());
+  if(dateEl && !dateEl.value) dateEl.value = date;
+
+  document.getElementById('fichajesFechaLabel').textContent =
+    new Date(date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Load fichajes for the date
+  const {data: fichsData} = await sb.from('fichajes')
+    .select('*').eq('fecha', date).order('creado_en');
+  const fichs = fichsData || [];
+
+  // Build per-worker summary
+  const hoy = isoDate(new Date());
+  const activeWorkers = workers.filter(w => {
+    const s = parseDate(w.inicio), e = parseDate(w.fin);
+    const d = parseDate(date);
+    return (!s||d>=s) && (!e||d<=e);
+  });
+
+  let present=0, absent=0, onPause=0, done=0;
+  const rows = activeWorkers.map(w=>{
+    const wf = fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
+    const entrada     = wf.find(f=>f.tipo==='entrada');
+    const pausaInicio = wf.find(f=>f.tipo==='pausa_inicio');
+    const pausaFin    = wf.find(f=>f.tipo==='pausa_fin');
+    const salida      = wf.find(f=>f.tipo==='salida');
+    const ultimo      = wf[wf.length-1]?.tipo;
+
+    let estado='';
+    if(!entrada){ absent++; estado='fich-badge-none'; }
+    else if(salida){ done++; present++; estado='fich-badge-out'; }
+    else if(pausaInicio&&!pausaFin){ onPause++; present++; estado='fich-badge-pause'; }
+    else { present++; estado='fich-badge-in'; }
+
+    // Calc horas
+    let horas='—';
+    if(entrada){
+      const fin = salida ? salida.hora : (date===hoy ? new Date().toTimeString().substring(0,8) : null);
+      if(fin){
+        let mins = timeToMins(fin) - timeToMins(entrada.hora);
+        if(pausaInicio&&pausaFin) mins -= (timeToMins(pausaFin.hora)-timeToMins(pausaInicio.hora));
+        if(mins>0) horas = (Math.floor(mins/60)+'h '+(mins%60)+'m');
+      }
+    }
+
+    const estadoLabel = !entrada?'Sin fichar':salida?'Completado':pausaInicio&&!pausaFin?'En pausa':'Trabajando';
+    return {w, entrada, pausaInicio, pausaFin, salida, horas, estado, estadoLabel, absent: !entrada};
+  });
+
+  // Stats
+  document.getElementById('fichajesStats').innerHTML=`
+    <div class="fich-stat"><div class="fich-stat-label">Presentes</div><div class="fich-stat-val" style="color:var(--green)">${present}</div></div>
+    <div class="fich-stat"><div class="fich-stat-label">Ausentes</div><div class="fich-stat-val" style="color:var(--red)">${absent}</div></div>
+    <div class="fich-stat"><div class="fich-stat-label">En pausa</div><div class="fich-stat-val" style="color:var(--amber)">${onPause}</div></div>
+    <div class="fich-stat"><div class="fich-stat-label">Completados</div><div class="fich-stat-val" style="color:var(--blue)">${done}</div></div>
+    <div class="fich-stat"><div class="fich-stat-label">Total esperados</div><div class="fich-stat-val">${activeWorkers.length}</div></div>
+  `;
+
+  // Rows
+  document.getElementById('fichajesList').innerHTML = rows.length ? rows.map(r=>`
+    <div class="fich-row${r.absent?' absent':''}">
+      <span style="font-weight:600;font-size:12px">${r.w.nombre} <span class="${r.estado}" style="font-size:10px">${r.estadoLabel}</span></span>
+      <span class="fich-time-cell${!r.entrada?' empty':''}">${r.entrada?r.entrada.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell fich-hide-sm${!r.pausaInicio?' empty':''}">${r.pausaInicio?r.pausaInicio.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell fich-hide-sm${!r.pausaFin?' empty':''}">${r.pausaFin?r.pausaFin.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell${!r.salida?' empty':''}">${r.salida?r.salida.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell" style="color:var(--green);font-size:11px">${r.horas}</span>
+    </div>`).join('') : '<div class="empty">Sin fichajes para esta fecha.</div>';
+
+  // PINs list
+  document.getElementById('pinsList').innerHTML = workers.map(w=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(w.nombre)}</div>
+      <span style="flex:1;font-weight:600">${w.nombre}</span>
+      <div class="pin-chip"><span style="font-size:11px;color:var(--text2)">PIN</span><code>${w.pin||'—'}</code><button class="copy-btn" onclick="navigator.clipboard.writeText('${w.pin||''}').then(()=>this.textContent='✓').catch(()=>{})">copiar</button></div>
+    </div>`).join('');
+}
+
+function timeToMins(t){
+  const [h,m] = (t||'00:00').split(':').map(Number);
+  return h*60+m;
+}
+
+
 // ══ NAVEGACIÓN ════════════════════════════════════════════════
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
 function showTab(name,btn){
@@ -1289,6 +1598,7 @@ function showTab(name,btn){
   if(name==='summary'){populateSumMonth();renderSummary();}
   if(name==='vacaciones')renderVacaciones();
   if(name==='audit')loadAudit();
+  if(name==='fichajes'){document.getElementById('fichajesDate').value=isoDate(new Date());loadFichajes();}
 }
 
 // ══ INIT ══════════════════════════════════════════════════════
