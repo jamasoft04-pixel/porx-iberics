@@ -224,52 +224,50 @@ tr:last-child td{border-bottom:none}
 /* USER ROW */
 .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px}
 
+
 /* FICHAJE SCREEN */
-#scFichaje{align-items:center;justify-content:center;padding:1rem;background:var(--bg3);flex-direction:column;gap:0}
-.fich-card{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rlg);width:100%;max-width:420px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+#scFichaje{align-items:center;justify-content:center;padding:1rem;background:#1a1a2e;flex-direction:column}
+.fich-card{background:#fff;border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3)}
 .fich-header{background:var(--blue);padding:1.5rem;text-align:center;color:#fff}
-.fich-header h1{font-size:22px;font-weight:700;margin-bottom:4px}
-.fich-header .fich-time{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin:8px 0 4px}
-.fich-header .fich-date{font-size:13px;opacity:.8}
+.fich-header h1{font-size:18px;font-weight:700;margin-bottom:4px}
+.fich-time{font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;margin:8px 0 4px;letter-spacing:2px}
+.fich-date{font-size:12px;opacity:.8;text-transform:capitalize}
 .fich-body{padding:1.5rem}
-.pin-display{display:flex;justify-content:center;gap:10px;margin-bottom:1.5rem}
-.pin-dot{width:48px;height:56px;border:2px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--text);background:var(--bg2);transition:all .15s}
+.pin-display{display:flex;justify-content:center;gap:12px;margin-bottom:1.5rem}
+.pin-dot{width:52px;height:60px;border:2px solid var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:var(--text);background:var(--bg2);transition:all .15s}
 .pin-dot.filled{border-color:var(--blue);background:var(--blue);color:#fff}
 .pin-dot.error{border-color:var(--red);background:#FCEBEB;animation:shake .3s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
-.numpad-btn{padding:16px;font-size:22px;font-weight:600;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);cursor:pointer;text-align:center;transition:background .1s;user-select:none}
+.numpad-btn{padding:18px;font-size:24px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);cursor:pointer;text-align:center;transition:all .1s;user-select:none;-webkit-user-select:none}
 .numpad-btn:hover{background:var(--bg2)}
-.numpad-btn:active{background:var(--bg3);transform:scale(.96)}
+.numpad-btn:active{background:var(--bg3);transform:scale(.95)}
 .numpad-btn.del{font-size:16px;color:var(--text2)}
 .numpad-btn.zero{grid-column:2}
-.fich-msg{text-align:center;font-size:13px;padding:10px;border-radius:var(--r);margin-bottom:8px;min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px}
-.fich-msg.success{background:#EAF3DE;color:#3B6D11;font-weight:600}
-.fich-msg.error{background:#FCEBEB;color:var(--red);font-weight:600}
-.fich-link{display:block;text-align:center;margin-top:12px;font-size:12px;color:var(--text2);cursor:pointer;text-decoration:underline}
-
-/* FICHAJES PANEL (admin) */
-.fich-today-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.fich-msg{text-align:center;font-size:14px;font-weight:600;padding:12px;border-radius:8px;margin-bottom:10px;min-height:44px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--text2)}
+.fich-msg.success{background:#EAF3DE;color:#3B6D11}
+.fich-msg.error{background:#FCEBEB;color:var(--red)}
+.fich-link{display:block;text-align:center;margin-top:10px;font-size:12px;color:var(--text2);cursor:pointer;text-decoration:underline}
+/* FICHAJES PANEL */
+.fich-today-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
 .fich-stat{background:var(--bg2);border-radius:var(--r);padding:10px;text-align:center}
 .fich-stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:2px}
 .fich-stat-val{font-size:22px;font-weight:700}
-.fich-row{display:grid;grid-template-columns:1fr repeat(4,80px) 70px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:12px}
+.fich-row{display:grid;grid-template-columns:1fr repeat(4,70px) 65px;gap:4px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:12px}
 .fich-row.header{background:var(--blue);color:#fff;font-weight:700;font-size:11px;border-color:var(--blue)}
-.fich-row.absent{opacity:.45}
+.fich-row.absent{opacity:.5}
 .fich-time-cell{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
-.fich-time-cell.empty{color:var(--text3)}
-.fich-badge-in{background:#EAF3DE;color:#3B6D11;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
-.fich-badge-out{background:#FCEBEB;color:var(--red);padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
-.fich-badge-pause{background:#FAEEDA;color:#854F0B;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
-.fich-badge-none{background:var(--bg2);color:var(--text3);padding:2px 7px;border-radius:10px;font-size:11px;display:inline-block}
-.pin-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:4px 10px;font-size:13px}
-.pin-chip code{font-family:monospace;font-size:16px;font-weight:700;letter-spacing:4px;color:var(--blue)}
-.pin-chip .copy-btn{cursor:pointer;color:var(--text2);font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg)}
-.pin-chip .copy-btn:hover{background:var(--bg2)}
-@media(max-width:600px){
-  .fich-row{grid-template-columns:1fr repeat(2,70px);font-size:11px}
-  .fich-row .fich-hide-sm{display:none}
-}
+.fich-time-cell.empty{color:var(--text3);font-weight:400}
+.fich-badge-in{background:#EAF3DE;color:#3B6D11;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700}
+.fich-badge-out{background:#FCEBEB;color:var(--red);padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700}
+.fich-badge-pause{background:#FAEEDA;color:#854F0B;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700}
+.fich-badge-none{background:var(--bg2);color:var(--text3);padding:1px 6px;border-radius:10px;font-size:10px}
+.pin-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:4px 10px}
+.pin-chip code{font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;color:var(--blue)}
+.copy-btn{cursor:pointer;color:var(--text2);font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg)}
+.copy-btn:hover{background:var(--bg2)}
+@media(max-width:560px){.fich-row{grid-template-columns:1fr repeat(2,65px)}.fich-hide-sm{display:none}}
+
 /* INSTALL BANNER */
 #installBanner{display:none;background:var(--blue);color:#fff;padding:10px 1rem;font-size:13px;align-items:center;gap:10px;flex-shrink:0}
 #installBanner button{background:#fff;color:var(--blue);border:none;border-radius:var(--r);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer}
@@ -286,7 +284,7 @@ tr:last-child td{border-bottom:none}
       <strong>Primera vez:</strong><br>
       1. Ejecuta <code>schema_v3.sql</code> y luego <code>schema_v4.sql</code> en SQL Editor<br>
       2. Copia URL y anon key de <strong>Project Settings → API</strong><br>
-      3. Regístrate, luego: <code>update public.usuarios set rol='admin' where email='<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="77030237121a161e1b5914181a">[email&#160;protected]</a>';</code>
+      3. Regístrate, luego: <code>update public.usuarios set rol='admin' where email='tu@email.com';</code>
     </div>
     <div class="fg" style="margin-bottom:10px"><label>Project URL</label><input type="text" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co"></div>
     <div class="fg" style="margin-bottom:10px"><label>Anon Key</label><input type="password" id="cfgKey" placeholder="eyJhbGci..."></div>
@@ -348,6 +346,40 @@ tr:last-child td{border-bottom:none}
       <button class="tab" id="tabUsuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</button>
       <button class="tab" id="tabAudit" style="display:none" onclick="showTab('audit',this)">Auditoría</button>
       <button class="tab" id="tabFichajes" style="display:none" onclick="showTab('fichajes',this)">Fichajes</button>
+    </div>
+
+
+    <!-- FICHAJES -->
+    <div class="panel" id="tab-fichajes">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <button class="btn btn-blue" style="font-size:16px;padding:16px 32px;border-radius:12px;font-weight:700;width:100%;max-width:420px" onclick="showScreen('scFichaje')">Abrir terminal de fichaje</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:2px">Control de asistencia</div>
+          <div style="font-size:12px;color:var(--text2)" id="fichajesFechaLabel"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="fichajesDate" onchange="loadFichajes()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+          <button class="btn btn-sm" onclick="loadFichajes()">Actualizar</button>
+        </div>
+      </div>
+      <div id="fichajesStats" class="fich-today-grid"></div>
+      <div class="card" style="padding:.75rem;margin-bottom:1rem">
+        <div class="fich-row header">
+          <span>Trabajador</span>
+          <span style="text-align:center">Entrada</span>
+          <span style="text-align:center" class="fich-hide-sm">Pausa</span>
+          <span style="text-align:center" class="fich-hide-sm">Vuelta</span>
+          <span style="text-align:center">Salida</span>
+          <span style="text-align:center">Horas</span>
+        </div>
+        <div id="fichajesList"></div>
+      </div>
+      <div class="card">
+        <div class="stitle">PINs de trabajadores</div>
+        <div id="pinsList"></div>
+      </div>
     </div>
 
     <!-- TRABAJADORES -->
@@ -509,7 +541,7 @@ tr:last-child td{border-bottom:none}
 </div>
 
 
-<!-- FICHAJE (pantalla kiosko) -->
+<!-- FICHAJE KIOSKO -->
 <div class="screen" id="scFichaje">
   <div class="fich-card">
     <div class="fich-header">
@@ -524,7 +556,7 @@ tr:last-child td{border-bottom:none}
         <div class="pin-dot" id="pd2"></div>
         <div class="pin-dot" id="pd3"></div>
       </div>
-      <div class="fich-msg" id="fichMsg">Introduce tu PIN de 4 dígitos</div>
+      <div class="fich-msg" id="fichMsg">Introduce tu PIN de 4 digitos</div>
       <div class="numpad">
         <button class="numpad-btn" onclick="pinPress('1')">1</button>
         <button class="numpad-btn" onclick="pinPress('2')">2</button>
@@ -535,50 +567,16 @@ tr:last-child td{border-bottom:none}
         <button class="numpad-btn" onclick="pinPress('7')">7</button>
         <button class="numpad-btn" onclick="pinPress('8')">8</button>
         <button class="numpad-btn" onclick="pinPress('9')">9</button>
-        <button class="numpad-btn del" onclick="pinDel()">⌫</button>
+        <button class="numpad-btn del" onclick="pinDel()">&#9003;</button>
         <button class="numpad-btn zero" onclick="pinPress('0')">0</button>
-        <button class="numpad-btn del" onclick="pinClear()">✕</button>
+        <button class="numpad-btn del" onclick="pinClear()">C</button>
       </div>
       <a class="fich-link" onclick="showScreen('scLogin')">Acceso administrador</a>
-    </div>
-
-    <!-- FICHAJES -->
-    <div class="panel" id="tab-fichajes">
-      <div style="text-align:center;margin-bottom:1.5rem">
-        <button class="btn btn-blue" style="font-size:16px;padding:14px 32px;border-radius:12px;font-weight:700;width:100%;max-width:400px" onclick="showScreen('scFichaje')">&#9654; Abrir terminal de fichaje</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:2px">Control de asistencia</div>
-          <div style="font-size:12px;color:var(--text2)" id="fichajesFechaLabel"></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <input type="date" id="fichajesDate" onchange="loadFichajes()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
-          <button class="btn btn-sm" onclick="loadFichajes()">Actualizar</button>
-          <button class="btn btn-sm btn-blue" onclick="showScreen('scFichaje')">Abrir terminal fichaje</button>
-        </div>
-      </div>
-      <div id="fichajesStats" class="fich-today-grid" style="margin-bottom:1rem"></div>
-      <div class="card" style="padding:.75rem">
-        <div class="fich-row header">
-          <span>Trabajador</span>
-          <span style="text-align:center">Entrada</span>
-          <span style="text-align:center" class="fich-hide-sm">Pausa</span>
-          <span style="text-align:center" class="fich-hide-sm">Vuelta</span>
-          <span style="text-align:center">Salida</span>
-          <span style="text-align:center">Horas</span>
-        </div>
-        <div id="fichajesList"></div>
-      </div>
-      <div class="card" style="margin-top:1rem">
-        <div class="stitle">PINs de trabajadores</div>
-        <div id="pinsList"></div>
-      </div>
     </div>
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ══ CONSTANTES ════════════════════════════════════════════════
 const DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAYNAMES=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -717,7 +715,7 @@ async function loadAll(){
   renderWorkers(); renderFestivos(); renderSchedule();
   renderCalendar(); renderVacaciones(); renderSummary();
   updateAllSelects(); populateSumMonth();
-  if(isAdmin()){renderUsuarios();loadAudit();} loadFichajes();
+  if(isAdmin()){renderUsuarios();loadAudit();loadFichajes();}
 }
 
 // ══ HELPERS ═══════════════════════════════════════════════════
@@ -1022,7 +1020,7 @@ function renderCalendar(){
       if(st.type==='work'){
         wH+=dh;wDays++;
         pillClass=w.turno==='both'?'both':'work';
-        pillHTML=`<div class="cal-pill ${pillClass}">${w.turno==='both'?'8:30–14:00 / 17:00–22:00':w.turno==='morning'?'8:30–14:00':'17:00–22:00'}</div>`;
+        pillHTML=`<div class="cal-pill ${pillClass}">${w.turno==='both'?'8:30–14:00/17:00–22:00':w.turno==='morning'?'8:30–14:00':'17:00–22:00'}</div>`;
       } else if(st.type==='baja'){bDays++;pillHTML=`<div class="cal-pill baja">Baja</div>`;}
       else if(st.type==='vac'){vDays++;pillHTML=`<div class="cal-pill vac">Vac.</div>`;}
       else if(st.type==='festivo'){festDays++;pillHTML=`<div class="cal-pill fest" title="${st.name}">Festivo</div>`;}
@@ -1059,7 +1057,7 @@ function renderSchedule(){
     let wH=0;
     const cells=dates.map(d=>{
       const st=getDayStatus(w,d),dh=Math.round(w.horas/5*10)/10;
-      if(st.type==='work'){wH+=dh;if(w.turno==='both')return`<span class="dy-work">8:30–14:00 · ${Math.round(dh/2*10)/10}h</span><br><span class="dy-eve" style="margin-top:2px;display:inline-block">17:00–22:00 · ${Math.round(dh/2*10)/10}h</span>`;if(w.turno==='morning')return`<span class="dy-work">8:30–14:00 · ${dh}h</span>`;return`<span class="dy-eve">17:00–22:00 · ${dh}h</span>`;}
+      if(st.type==='work'){wH+=dh;if(w.turno==='both')return`<span class="dy-work">8:30–14:00 ${Math.round(dh/2*10)/10}h</span><br><span class="dy-eve" style="margin-top:2px;display:inline-block">17:00–22:00 ${Math.round(dh/2*10)/10}h</span>`;if(w.turno==='morning')return`<span class="dy-work">8:30–14:00 ${dh}h</span>`;return`<span class="dy-eve">17:00–22:00 ${dh}h</span>`;}
       if(st.type==='sunday'||st.type==='inactive')return'<span class="dy-off">—</span>';
       if(st.type==='libre')return'<span class="dy-libre">Libre</span>';
       if(st.type==='baja')return'<span class="dy-baja">Baja</span>';
@@ -1396,12 +1394,12 @@ function renderUsuarios(){
 }
 
 
-// ══ FICHAJE — KIOSKO ══════════════════════════════════════════
+// ══ FICHAJE KIOSKO ════════════════════════════════════════════
 let pinBuffer = '';
 let fichClockInterval = null;
 
 function startFichClock(){
-  if(fichClockInterval) clearInterval(fichClockInterval);
+  clearInterval(fichClockInterval);
   function tick(){
     const now = new Date();
     const t = document.getElementById('fichTime');
@@ -1417,27 +1415,18 @@ function pinPress(digit){
   if(pinBuffer.length >= 4) return;
   pinBuffer += digit;
   updatePinDisplay();
-  if(pinBuffer.length === 4) setTimeout(processFichaje, 200);
+  if(pinBuffer.length === 4) setTimeout(processFichaje, 150);
 }
-
-function pinDel(){
-  pinBuffer = pinBuffer.slice(0,-1);
-  updatePinDisplay();
-}
-
-function pinClear(){
-  pinBuffer = '';
-  updatePinDisplay();
-  setFichMsg('Introduce tu PIN de 4 dígitos','');
-}
+function pinDel(){ pinBuffer = pinBuffer.slice(0,-1); updatePinDisplay(); }
+function pinClear(){ pinBuffer=''; updatePinDisplay(); setFichMsg('Introduce tu PIN de 4 digitos',''); }
 
 function updatePinDisplay(){
   for(let i=0;i<4;i++){
     const dot = document.getElementById('pd'+i);
     if(!dot) continue;
+    dot.textContent = i < pinBuffer.length ? 'o' : '';
     dot.classList.toggle('filled', i < pinBuffer.length);
     dot.classList.remove('error');
-    dot.textContent = i < pinBuffer.length ? '●' : '';
   }
 }
 
@@ -1451,40 +1440,34 @@ function setFichMsg(text, type){
 async function processFichaje(){
   const pin = pinBuffer;
   pinBuffer = '';
+  updatePinDisplay();
+  setFichMsg('Verificando...', '');
   const hoy = isoDate(new Date());
   const tipo = await getTipoFichaje(pin, hoy);
   const {data, error} = await sb.rpc('fichar_con_pin', {p_pin: pin, p_tipo: tipo});
   if(error || !data || !data.ok){
-    const msg = (data && data.error) ? data.error : (error ? error.message : 'PIN incorrecto');
-    const el = document.getElementById('fichMsg');
-    el.textContent = msg;
-    el.className = 'fich-msg error';
+    const msg = (data && data.error) ? data.error : 'PIN incorrecto';
+    setFichMsg(msg, 'error');
     for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.classList.add('error');}
-    setTimeout(()=>{ pinClear(); }, 2500);
+    setTimeout(pinClear, 2500);
     return;
   }
   const labels = {entrada:'ENTRADA REGISTRADA', pausa_inicio:'PAUSA INICIADA', pausa_fin:'VUELTA DE PAUSA', salida:'SALIDA REGISTRADA'};
-  const el = document.getElementById('fichMsg');
-  el.textContent = (labels[data.tipo]||data.tipo) + '  ' + data.nombre + '  ' + data.hora;
-  el.className = 'fich-msg success';
-  updatePinDisplay();
-  setTimeout(()=>{ pinClear(); }, 3000);
+  setFichMsg((labels[data.tipo]||data.tipo) + '  ' + data.nombre + '  ' + data.hora, 'success');
+  setTimeout(pinClear, 3000);
 }
 
 async function getTipoFichaje(pin, hoy){
   const res1 = await sb.from('trabajadores').select('id').eq('pin', pin).maybeSingle();
-  const worker = res1.data;
-  if(!worker) return 'entrada';
-  const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', worker.id).eq('fecha', hoy).order('creado_en', {ascending:false}).limit(1).maybeSingle();
-  const ultimo = res2.data;
-  if(!ultimo || ultimo.tipo==='salida') return 'entrada';
-  if(ultimo.tipo==='entrada') return 'pausa_inicio';
-  if(ultimo.tipo==='pausa_inicio') return 'pausa_fin';
-  if(ultimo.tipo==='pausa_fin') return 'salida';
-  return 'entrada';
+  if(!res1.data) return 'entrada';
+  const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', res1.data.id).eq('fecha', hoy).order('creado_en', {ascending:false}).limit(1).maybeSingle();
+  const ultimo = res2.data ? res2.data.tipo : null;
+  if(!ultimo || ultimo==='salida') return 'entrada';
+  if(ultimo==='entrada') return 'pausa_inicio';
+  if(ultimo==='pausa_inicio') return 'pausa_fin';
+  return 'salida';
 }
 
-// Keyboard support for kiosko
 document.addEventListener('keydown', e=>{
   if(document.getElementById('scFichaje')?.classList.contains('active')){
     if(e.key>='0'&&e.key<='9') pinPress(e.key);
@@ -1493,92 +1476,71 @@ document.addEventListener('keydown', e=>{
   }
 });
 
-// ══ FICHAJES — PANEL ADMIN ════════════════════════════════════
+// ══ FICHAJES PANEL ADMIN ══════════════════════════════════════
+function timeToMins(t){ const[h,m]=(t||'00:00').split(':').map(Number); return h*60+m; }
+
 async function loadFichajes(){
   const dateEl = document.getElementById('fichajesDate');
-  const date = dateEl?.value || isoDate(new Date());
-  if(dateEl && !dateEl.value) dateEl.value = date;
+  if(!dateEl) return;
+  const date = dateEl.value || isoDate(new Date());
+  if(!dateEl.value) dateEl.value = date;
+  const label = document.getElementById('fichajesFechaLabel');
+  if(label) label.textContent = new Date(date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  document.getElementById('fichajesFechaLabel').textContent =
-    new Date(date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  // Load fichajes for the date
-  const {data: fichsData} = await sb.from('fichajes')
-    .select('*').eq('fecha', date).order('creado_en');
+  const {data: fichsData} = await sb.from('fichajes').select('*').eq('fecha', date).order('creado_en');
   const fichs = fichsData || [];
-
-  // Build per-worker summary
   const hoy = isoDate(new Date());
-  const activeWorkers = workers.filter(w => {
-    const s = parseDate(w.inicio), e = parseDate(w.fin);
-    const d = parseDate(date);
-    return (!s||d>=s) && (!e||d<=e);
-  });
+  const d = parseDate(date);
+  const activeWorkers = workers.filter(w=>{ const s=parseDate(w.inicio),e=parseDate(w.fin); return(!s||d>=s)&&(!e||d<=e); });
 
-  let present=0, absent=0, onPause=0, done=0;
+  let present=0,absent=0,onPause=0,done=0;
   const rows = activeWorkers.map(w=>{
     const wf = fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
-    const entrada     = wf.find(f=>f.tipo==='entrada');
-    const pausaInicio = wf.find(f=>f.tipo==='pausa_inicio');
-    const pausaFin    = wf.find(f=>f.tipo==='pausa_fin');
-    const salida      = wf.find(f=>f.tipo==='salida');
-    const ultimo      = wf[wf.length-1]?.tipo;
-
-    let estado='';
-    if(!entrada){ absent++; estado='fich-badge-none'; }
-    else if(salida){ done++; present++; estado='fich-badge-out'; }
-    else if(pausaInicio&&!pausaFin){ onPause++; present++; estado='fich-badge-pause'; }
-    else { present++; estado='fich-badge-in'; }
-
-    // Calc horas
+    const entrada=wf.find(f=>f.tipo==='entrada');
+    const pausaI=wf.find(f=>f.tipo==='pausa_inicio');
+    const pausaF=wf.find(f=>f.tipo==='pausa_fin');
+    const salida=wf.find(f=>f.tipo==='salida');
+    if(!entrada) absent++;
+    else if(salida){done++;present++;}
+    else if(pausaI&&!pausaF){onPause++;present++;}
+    else present++;
     let horas='—';
     if(entrada){
-      const fin = salida ? salida.hora : (date===hoy ? new Date().toTimeString().substring(0,8) : null);
-      if(fin){
-        let mins = timeToMins(fin) - timeToMins(entrada.hora);
-        if(pausaInicio&&pausaFin) mins -= (timeToMins(pausaFin.hora)-timeToMins(pausaInicio.hora));
-        if(mins>0) horas = (Math.floor(mins/60)+'h '+(mins%60)+'m');
-      }
+      const fin=salida?salida.hora:(date===hoy?new Date().toTimeString().substring(0,8):null);
+      if(fin){ let m=timeToMins(fin)-timeToMins(entrada.hora); if(pausaI&&pausaF)m-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora)); if(m>0)horas=Math.floor(m/60)+'h '+(m%60)+'m'; }
     }
-
-    const estadoLabel = !entrada?'Sin fichar':salida?'Completado':pausaInicio&&!pausaFin?'En pausa':'Trabajando';
-    return {w, entrada, pausaInicio, pausaFin, salida, horas, estado, estadoLabel, absent: !entrada};
+    const estado=!entrada?'none':salida?'out':pausaI&&!pausaF?'pause':'in';
+    const estadoLabel=!entrada?'Sin fichar':salida?'Completado':pausaI&&!pausaF?'En pausa':'Trabajando';
+    return{w,entrada,pausaI,pausaF,salida,horas,estado,estadoLabel};
   });
 
-  // Stats
-  document.getElementById('fichajesStats').innerHTML=`
+  const stats = document.getElementById('fichajesStats');
+  if(stats) stats.innerHTML=`
     <div class="fich-stat"><div class="fich-stat-label">Presentes</div><div class="fich-stat-val" style="color:var(--green)">${present}</div></div>
     <div class="fich-stat"><div class="fich-stat-label">Ausentes</div><div class="fich-stat-val" style="color:var(--red)">${absent}</div></div>
     <div class="fich-stat"><div class="fich-stat-label">En pausa</div><div class="fich-stat-val" style="color:var(--amber)">${onPause}</div></div>
     <div class="fich-stat"><div class="fich-stat-label">Completados</div><div class="fich-stat-val" style="color:var(--blue)">${done}</div></div>
-    <div class="fich-stat"><div class="fich-stat-label">Total esperados</div><div class="fich-stat-val">${activeWorkers.length}</div></div>
-  `;
+    <div class="fich-stat"><div class="fich-stat-label">Total esperados</div><div class="fich-stat-val">${activeWorkers.length}</div></div>`;
 
-  // Rows
-  document.getElementById('fichajesList').innerHTML = rows.length ? rows.map(r=>`
-    <div class="fich-row${r.absent?' absent':''}">
-      <span style="font-weight:600;font-size:12px">${r.w.nombre} <span class="${r.estado}" style="font-size:10px">${r.estadoLabel}</span></span>
+  const list = document.getElementById('fichajesList');
+  if(list) list.innerHTML = rows.map(r=>`
+    <div class="fich-row${!r.entrada?' absent':''}">
+      <span style="font-weight:600;font-size:11px">${r.w.nombre}<br><span class="fich-badge-${r.estado}">${r.estadoLabel}</span></span>
       <span class="fich-time-cell${!r.entrada?' empty':''}">${r.entrada?r.entrada.hora.substring(0,5):'—'}</span>
-      <span class="fich-time-cell fich-hide-sm${!r.pausaInicio?' empty':''}">${r.pausaInicio?r.pausaInicio.hora.substring(0,5):'—'}</span>
-      <span class="fich-time-cell fich-hide-sm${!r.pausaFin?' empty':''}">${r.pausaFin?r.pausaFin.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell fich-hide-sm${!r.pausaI?' empty':''}">${r.pausaI?r.pausaI.hora.substring(0,5):'—'}</span>
+      <span class="fich-time-cell fich-hide-sm${!r.pausaF?' empty':''}">${r.pausaF?r.pausaF.hora.substring(0,5):'—'}</span>
       <span class="fich-time-cell${!r.salida?' empty':''}">${r.salida?r.salida.hora.substring(0,5):'—'}</span>
       <span class="fich-time-cell" style="color:var(--green);font-size:11px">${r.horas}</span>
-    </div>`).join('') : '<div class="empty">Sin fichajes para esta fecha.</div>';
+    </div>`).join('') || '<div class="empty">Sin fichajes.</div>';
 
-  // PINs list
-  document.getElementById('pinsList').innerHTML = workers.map(w=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-      <div class="avatar" style="width:30px;height:30px;font-size:11px">${initials(w.nombre)}</div>
-      <span style="flex:1;font-weight:600">${w.nombre}</span>
-      <div class="pin-chip"><span style="font-size:11px;color:var(--text2)">PIN</span><code>${w.pin||'—'}</code><button class="copy-btn" onclick="navigator.clipboard.writeText('${w.pin||''}').then(()=>this.textContent='✓').catch(()=>{})">copiar</button></div>
+  const pins = document.getElementById('pinsList');
+  if(pins) pins.innerHTML = workers.map(w=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div class="avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${initials(w.nombre)}</div>
+      <span style="flex:1;font-size:13px;font-weight:600">${w.nombre}</span>
+      <div class="pin-chip"><code>${w.pin||'—'}</code><button class="copy-btn" onclick="navigator.clipboard.writeText('${w.pin||''}').then(()=>this.textContent='OK').catch(()=>{})">copiar</button></div>
     </div>`).join('');
 }
-
-function timeToMins(t){
-  const [h,m] = (t||'00:00').split(':').map(Number);
-  return h*60+m;
-}
-
 
 // ══ NAVEGACIÓN ════════════════════════════════════════════════
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
@@ -1603,4 +1565,13 @@ function showTab(name,btn){
     document.getElementById('cfgKey').value=key;
     sb=window.supabase.createClient(url,key);
     const{data:{session}}=await sb.auth.getSession();
-    if(session){await onLogin(session.user);}else{showScreen
+    if(session){await onLogin(session.user);}else{showScreen('scLogin');}
+    sb.auth.onAuthStateChange(async(ev,session)=>{
+      if(ev==='SIGNED_IN'&&session)await onLogin(session.user);
+      if(ev==='SIGNED_OUT')showScreen('scLogin');
+    });
+  }
+})();
+</script>
+</body>
+</html>
