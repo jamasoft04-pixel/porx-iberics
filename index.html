@@ -1693,6 +1693,165 @@ html += '</div></div>';
 }
 grid.innerHTML = html;
 }
+
+let historialData=[];
+async function loadHistorial(){
+const wid=document.getElementById('histWorker')?.value||'all';
+const desde=document.getElementById('histDesde')?.value;
+const hasta=document.getElementById('histHasta')?.value;
+const el=document.getElementById('historialList');
+if(!desde||!hasta){el.innerHTML='<div class="empty">Selecciona el rango de fechas.</div>';return;}
+if(desde>hasta){el.innerHTML='<div class="alert alert-w">La fecha desde debe ser anterior a hasta.</div>';return;}
+el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
+let q=sb.from('fichajes').select('*').gte('fecha',desde).lte('fecha',hasta).order('fecha').order('trabajador_id').order('creado_en');
+if(wid!=='all')q=q.eq('trabajador_id',parseInt(wid));
+const{data,error}=await q;
+if(error){el.innerHTML='<div class="alert alert-e">'+error.message+'</div>';return;}
+const fichs=data||[];
+if(!fichs.length){el.innerHTML='<div class="empty">Sin fichajes en ese período.</div>';historialData=[];return;}
+const grouped={};
+fichs.forEach(f=>{
+const key=f.fecha+'__'+f.trabajador_id;
+if(!grouped[key])grouped[key]={fecha:f.fecha,wid:f.trabajador_id,fichajes:[]};
+grouped[key].fichajes.push(f);
+});
+historialData=Object.values(grouped).map(g=>{
+const w=workers.find(w=>w.id===g.wid)||{nombre:'Desconocido',turno:'both',horas:40};
+const entrada=g.fichajes.find(f=>f.tipo==='entrada');
+const pausaI=g.fichajes.find(f=>f.tipo==='pausa_inicio');
+const pausaF=g.fichajes.find(f=>f.tipo==='pausa_fin');
+const salida=g.fichajes.find(f=>f.tipo==='salida');
+let horas='—';
+if(entrada){const fin=salida?salida.hora:null;if(fin){let m=timeToMins(fin)-timeToMins(entrada.hora);if(pausaI&&pausaF)m-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));if(m>0)horas=Math.floor(m/60)+'h '+(m%60)+'m';}}
+return{fecha:g.fecha,w,entrada,pausaI,pausaF,salida,horas};
+}).sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.w.nombre.localeCompare(b.w.nombre));
+renderHistorial();
+}
+function renderHistorial(){
+const el=document.getElementById('historialList');
+if(!historialData.length){el.innerHTML='<div class="empty">Sin datos.</div>';return;}
+const byDate={};
+historialData.forEach(r=>{if(!byDate[r.fecha])byDate[r.fecha]=[];byDate[r.fecha].push(r);});
+let html='';
+Object.entries(byDate).forEach(([fecha,rows])=>{
+const label=new Date(fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+html+='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:4px 0;margin-bottom:4px;border-bottom:1px solid var(--border)">'+label+'</div>';
+rows.forEach(r=>{
+html+='<div class="fich-row">';
+html+='<span style="font-size:11px;font-weight:600">'+r.w.nombre+'</span>';
+html+='<span class="fich-time-cell'+(r.entrada?'':' empty')+'">'+(r.entrada?r.entrada.hora.substring(0,5):'—')+'</span>';
+html+='<span class="fich-time-cell fich-hide-sm'+(r.pausaI?'':' empty')+'">'+(r.pausaI?r.pausaI.hora.substring(0,5):'—')+'</span>';
+html+='<span class="fich-time-cell fich-hide-sm'+(r.pausaF?'':' empty')+'">'+(r.pausaF?r.pausaF.hora.substring(0,5):'—')+'</span>';
+html+='<span class="fich-time-cell'+(r.salida?'':' empty')+'">'+(r.salida?r.salida.hora.substring(0,5):'—')+'</span>';
+html+='<span class="fich-time-cell" style="color:var(--green);font-size:11px">'+r.horas+'</span>';
+html+='</div>';
+});
+html+='</div>';
+});
+el.innerHTML=html;
+}
+function exportFichajesDiaPDF(){
+const{jsPDF}=window.jspdf;
+const doc=new jsPDF();
+const date=document.getElementById('fichajesDate')?.value||isoDate(new Date());
+const label=new Date(date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+doc.setFontSize(14);doc.text('Control de asistencia · '+label,14,14);
+const rows=[];
+document.querySelectorAll('#fichajesList .fich-row').forEach(row=>{
+const cells=row.querySelectorAll('span');
+if(cells.length>=6)rows.push([cells[0].textContent.replace(/\n/g,' ').trim(),cells[1].textContent.trim(),cells[2].textContent.trim(),cells[3].textContent.trim(),cells[4].textContent.trim(),cells[5].textContent.trim()]);
+});
+doc.autoTable({head:[['Trabajador','Entrada','Pausa','Vuelta','Salida','Horas']],body:rows,startY:22,headStyles:{fillColor:[24,95,165]}});
+doc.save('asistencia-'+date+'.pdf');
+}
+function exportFichajesDiaXLS(){
+const date=document.getElementById('fichajesDate')?.value||isoDate(new Date());
+const label=new Date(date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const ws_data=[['Control de asistencia',label],['Trabajador','Entrada','Pausa inicio','Pausa fin','Salida','Horas trabajadas']];
+document.querySelectorAll('#fichajesList .fich-row').forEach(row=>{
+const cells=row.querySelectorAll('span');
+if(cells.length>=6)ws_data.push([cells[0].textContent.replace(/\n/g,' ').trim(),cells[1].textContent.trim(),cells[2].textContent.trim(),cells[3].textContent.trim(),cells[4].textContent.trim(),cells[5].textContent.trim()]);
+});
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws_data),'Asistencia');
+XLSX.writeFile(wb,'asistencia-'+date+'.xlsx');
+}
+function exportHistorialPDF(){
+if(!historialData.length){alert('Busca el historial primero.');return;}
+const{jsPDF}=window.jspdf;
+const doc=new jsPDF();
+const desde=document.getElementById('histDesde')?.value;
+const hasta=document.getElementById('histHasta')?.value;
+doc.setFontSize(14);doc.text('Historial de fichajes · '+fmtFull(desde)+' - '+fmtFull(hasta),14,14);
+const body=historialData.map(r=>[new Date(r.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'}),r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'—',r.pausaI?r.pausaI.hora.substring(0,5):'—',r.pausaF?r.pausaF.hora.substring(0,5):'—',r.salida?r.salida.hora.substring(0,5):'—',r.horas]);
+doc.autoTable({head:[['Fecha','Trabajador','Entrada','Pausa','Vuelta','Salida','Horas']],body,startY:22,styles:{fontSize:9},headStyles:{fillColor:[24,95,165]}});
+doc.save('historial-fichajes-'+desde+'-'+hasta+'.pdf');
+}
+function exportHistorialXLS(){
+if(!historialData.length){alert('Busca el historial primero.');return;}
+const desde=document.getElementById('histDesde')?.value;
+const hasta=document.getElementById('histHasta')?.value;
+const ws_data=[['Historial de fichajes','De '+fmtFull(desde)+' a '+fmtFull(hasta)],['Fecha','Trabajador','Entrada','Pausa inicio','Pausa fin','Salida','Horas trabajadas']];
+historialData.forEach(r=>{ws_data.push([r.fecha,r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'',r.pausaI?r.pausaI.hora.substring(0,5):'',r.pausaF?r.pausaF.hora.substring(0,5):'',r.salida?r.salida.hora.substring(0,5):'',r.horas]);});
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws_data),'Historial');
+XLSX.writeFile(wb,'historial-fichajes-'+desde+'-'+hasta+'.xlsx');
+}
+async function generarFichajesEjemplo(){
+const btn=document.getElementById('btnGenFichajes');
+const msg=document.getElementById('genFichajesMsg');
+if(!confirm('Esto borrara todos los fichajes de fechas pasadas y generara datos de ejemplo. Continuar?'))return;
+btn.disabled=true;msg.textContent='Generando...';
+const today=new Date();today.setHours(0,0,0,0);
+const{error:delErr}=await sb.from('fichajes').delete().lt('fecha',isoDate(today));
+if(delErr){msg.textContent='Error: '+delErr.message;btn.disabled=false;return;}
+const batch=[];
+for(const w of workers){
+if(!w.inicio)continue;
+const start=parseDate(w.inicio);
+const end=w.fin?parseDate(w.fin):new Date(today.getTime()-86400000);
+const totalMins=Math.round(w.horas/5*60);
+const halfMins=Math.round(totalMins/2);
+let d=new Date(start);
+while(d<today&&d<=end){
+const dow=d.getDay();
+const ds=isoDate(d);
+if(dow!==0&&dow!==parseInt(w.dia_libre)&&!isFestivo(ds)){
+const rnd=()=>Math.floor(Math.random()*6);
+const hasPause=Math.random()>0.2;
+const isAbsent=Math.random()<0.02;
+const noSalida=Math.random()<0.05;
+if(!isAbsent){
+let mE,mPI,mPF,mS;
+if(w.turno==='morning'){mE=8*60+30+rnd();mPI=mE+Math.round(totalMins/2)+rnd();mPF=mPI+10+rnd();mS=8*60+30+totalMins+rnd();}
+else if(w.turno==='evening'){mE=17*60+rnd();mPI=mE+Math.round(totalMins/2)+rnd();mPF=mPI+10+rnd();mS=17*60+totalMins+rnd();}
+else{mE=8*60+30+rnd();mPI=8*60+30+halfMins+rnd();mPF=17*60+rnd();mS=17*60+halfMins+rnd();}
+const toTime=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':00';
+batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(mE)});
+if(hasPause){batch.push({trabajador_id:w.id,tipo:'pausa_inicio',fecha:ds,hora:toTime(mPI)});batch.push({trabajador_id:w.id,tipo:'pausa_fin',fecha:ds,hora:toTime(mPF)});}
+if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(mS)});
+}
+}
+d.setDate(d.getDate()+1);
+}
+}
+for(let i=0;i<batch.length;i+=500){
+const chunk=batch.slice(i,i+500);
+const{error}=await sb.from('fichajes').insert(chunk);
+if(error){msg.textContent='Error: '+error.message;btn.disabled=false;return;}
+msg.textContent='Insertando... '+(i+chunk.length)+'/'+batch.length;
+}
+msg.textContent=batch.length+' registros generados. Listo.';
+btn.disabled=false;
+loadFichajes();
+}
+function updateHistWorkerSelect(){
+const sel=document.getElementById('histWorker');
+if(!sel)return;
+const cur=sel.value||'all';
+sel.innerHTML='<option value="all">Todos los trabajadores</option>'+workers.map(w=>'<option value="'+w.id+'"'+(String(cur)===String(w.id)?' selected':'')+'>'+w.nombre+'</option>').join('');
+}
+
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
 function showTab(name,btn){
 document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
