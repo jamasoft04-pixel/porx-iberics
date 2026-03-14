@@ -436,8 +436,8 @@ tr:last-child td{border-bottom:none}
         <input type="date" id="rango-desde-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
         <span style="font-size:12px;color:var(--text2)">hasta</span>
         <input type="date" id="rango-hasta-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
-        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-workers')">PDF</button>
-        <button class="btn btn-sm" onclick="printRango('tab-workers')" style="color:var(--text2)">&#128438; Imprimir</button>
+        <button class="btn btn-sm btn-export" onclick="exportWorkersPDF()">PDF</button>
+        <button class="btn btn-sm" onclick="printWorkers()" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
 
 
@@ -2422,6 +2422,117 @@ async function exportPanelPDF(panelId){
   }
 
   doc.save('porxada-'+panelId.replace('tab-','')+'-'+isoDate(new Date())+'.pdf');
+}
+
+
+// ══ EXPORTAR TRABAJADORES ════════════════════════════════════
+function printWorkers(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-workers').classList.add('active');
+  // Expand all worker cards for print
+  document.querySelectorAll('.worker-detail').forEach(d=>d.classList.add('open'));
+  window.print();
+  document.querySelectorAll('.worker-detail').forEach(d=>d.classList.remove('open'));
+}
+
+function exportWorkersPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const margin=14,pageW=210,contentW=pageW-margin*2;
+  const today=new Date();today.setHours(0,0,0,0);
+  const sLabels={both:'Mañana y tarde',morning:'Solo mañana',evening:'Solo tarde'};
+
+  doc.setFont('helvetica','bold');doc.setFontSize(16);
+  doc.text('Porxada Iberics · Trabajadores',margin,12);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text('Generado el '+today.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),margin,18);
+  doc.setTextColor(0);
+
+  let y=24;
+
+  workers.forEach((w,wi)=>{
+    const wb=workerBajas(w.id);
+    const wv=workerVacs(w.id);
+    const st=workerStatus(w,today);
+    const stLabel=st==='baja'?'Baja':st==='vac'?'Vacaciones':st==='activo'?'Activo':st==='pending'?'Pendiente':'Inactivo';
+    const dh=Math.round(w.horas/5*10)/10;
+    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+    const et=(w.entrada_t||'17:00').substring(0,5),st2=(w.salida_t||'22:00').substring(0,5);
+
+    // Check page space
+    const neededH=28+(wb.length+wv.length)*6+10;
+    if(y+neededH>285){doc.addPage();y=14;}
+
+    // Worker header bar
+    doc.setFillColor(24,95,165);
+    doc.rect(margin,y,contentW,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255);
+    doc.text(w.nombre,margin+3,y+5.5);
+    doc.setFontSize(8);
+    doc.text(stLabel,pageW-margin-3,y+5.5,{align:'right'});
+    doc.setTextColor(0);
+    y+=10;
+
+    // Data grid
+    const col1=margin,col2=margin+55,col3=margin+110;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);
+
+    // Row 1
+    doc.setTextColor(100);doc.text('Horas semanales:',col1,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(w.horas+'h/sem ('+dh+'h/día)',col1+30,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text('Turno:',col2,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(sLabels[w.turno]||'—',col2+15,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text('Día libre:',col3,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(DAYNAMES[w.dia_libre]||'—',col3+18,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(0);
+    y+=6;
+
+    // Row 2
+    doc.setTextColor(100);doc.text('Horario mañana:',col1,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(em+' – '+sm,col1+30,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text('Horario tarde:',col2,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(et+' – '+st2,col2+27,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text('PIN:',col3,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(w.pin||'—',col3+8,y);doc.setFontSize(8);
+    doc.setFont('helvetica','normal');doc.setTextColor(0);
+    y+=6;
+
+    // Row 3
+    doc.setTextColor(100);doc.text('Inicio contrato:',col1,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(w.inicio?fmtFull(w.inicio):'—',col1+30,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text('Fin contrato:',col2,y);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(w.fin?fmtFull(w.fin):'Indefinido',col2+25,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(0);
+    y+=8;
+
+    // Bajas
+    if(wb.length){
+      doc.setFillColor(250,238,218);doc.rect(margin,y-2,contentW,5+wb.length*5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(133,79,11);
+      doc.text('BAJAS ('+wb.length+')',margin+2,y+2);
+      doc.setFont('helvetica','normal');
+      wb.forEach((b,bi)=>{
+        y+=5;
+        const bLabel=fmtFull(b.baja_inicio)+' → '+(b.baja_fin?fmtFull(b.baja_fin):'Abierta')+(b.motivo?' · '+b.motivo:'');
+        doc.text(bLabel,margin+4,y+2);
+      });
+      doc.setTextColor(0);
+      y+=6;
+    }
+
+    // Vacaciones
+    if(wv.length){
+      doc.setFillColor(230,241,251);doc.rect(margin,y-2,contentW,5+wv.length*5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(12,68,124);
+      doc.text('VACACIONES ('+wv.length+')',margin+2,y+2);
+      doc.setFont('helvetica','normal');
+      wv.forEach((v,vi)=>{
+        y+=5;
+        const vLabel=fmtFull(v.vacaciones_inicio)+' → '+fmtFull(v.vacaciones_fin)+' · '+daysBetween(v.vacaciones_inicio,v.vacaciones_fin)+'d'+' · '+v.anio+(v.motivo?' · '+v.motivo:'');
+        doc.text(vLabel,margin+4,y+2);
+      });
+      doc.setTextColor(0);
+      y+=6;
+    }
+
+    // Separator
+    doc.setDrawColor(220);doc.setLineWidth(0.3);doc.line(margin,y,margin+contentW,y);
+    y+=6;
+  });
+
+  doc.save('trabajadores-'+isoDate(new Date())+'.pdf');
 }
 
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
