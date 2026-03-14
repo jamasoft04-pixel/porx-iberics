@@ -364,11 +364,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- FICHAJES -->
     <div class="panel" id="tab-fichajes">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-fichajes')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-fichajes')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-fichajes" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-fichajes" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-fichajes')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-fichajes')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div style="text-align:center;margin-bottom:1.5rem">
         <button class="btn btn-blue" style="font-size:16px;padding:16px 32px;border-radius:12px;font-weight:700;width:100%;max-width:420px" onclick="showScreen('scFichaje')">Abrir terminal de fichaje</button>
@@ -427,11 +431,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- TRABAJADORES -->
     <div class="panel active" id="tab-workers">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-workers')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-workers')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-workers')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-workers')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="card" id="addWorkerCard">
         <div class="stitle">Añadir trabajador</div>
@@ -461,10 +469,20 @@ tr:last-child td{border-bottom:none}
 
     <!-- HORARIO TIENDA -->
     <div class="panel" id="tab-tienda">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-tienda')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-tienda')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Imprimir rango:</span>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:6px">
+          <label style="font-size:11px;color:var(--text2)">Desde</label>
+          <input type="date" id="tiendaRangeDesde" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:6px">
+          <label style="font-size:11px;color:var(--text2)">Hasta</label>
+          <input type="date" id="tiendaRangeHasta" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        </div>
+        <button class="btn btn-sm btn-export" onclick="exportTiendaRangoPDF()">PDF del rango</button>
+        <button class="btn btn-sm" onclick="printTiendaRango()" style="color:var(--text2)">&#128438; Imprimir rango</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm btn-export" onclick="exportSemanaTiendaPDF()" style="background:var(--green);border-color:var(--green)">PDF día actual</button>
       </div>
 
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -486,11 +504,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- CUADRANTE MENSUAL -->
     <div class="panel" id="tab-calendar">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-calendar')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-calendar')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-calendar" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-calendar" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-calendar')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-calendar')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="cal-header">
         <div class="cal-nav">
@@ -515,11 +537,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- HORARIO SEMANAL -->
     <div class="panel" id="tab-schedule">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportSemanaPDF()">PDF visual</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-schedule')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-schedule" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-schedule" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-schedule')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-schedule')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="week-nav">
         <button class="btn btn-sm" onclick="changeWeek(-1)">← Anterior</button>
@@ -538,11 +564,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- VACACIONES -->
     <div class="panel" id="tab-vacaciones">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-vacaciones')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-vacaciones')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-vacaciones" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-vacaciones" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-vacaciones')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-vacaciones')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="card" id="addVacCard">
         <div class="stitle">Añadir período de vacaciones</div>
@@ -569,11 +599,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- RESUMEN -->
     <div class="panel" id="tab-summary">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-summary')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-summary')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-summary" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-summary" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-summary')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-summary')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="filter-row">
         <select id="sumView" onchange="renderSummary()"><option value="weekly">Por semana</option><option value="monthly">Por mes</option></select>
@@ -590,11 +624,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- INFORME -->
     <div class="panel" id="tab-report">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-report')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-report')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-report" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-report" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-report')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-report')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
         <div><div style="font-size:15px;font-weight:700;margin-bottom:4px">Informe histórico</div><div style="font-size:12px;color:var(--text2)">Desde febrero 2025 hasta hoy</div></div>
@@ -625,11 +663,15 @@ tr:last-child td{border-bottom:none}
 
     <!-- AUDITORÍA -->
     <div class="panel" id="tab-audit">
-      <div class="export-bar">
-        <span class="export-label">Exportar:</span>
-        <button class="btn btn-sm btn-export" onclick="exportPanelPDF('tab-audit')">PDF</button>
-        <button class="btn btn-sm" onclick="printPanel('tab-audit')" style="color:var(--text2)">&#128438; Imprimir</button>
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-audit" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-audit" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-audit')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-audit')" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
+
 
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -2137,6 +2179,175 @@ function exportSemanaPDF(){
   doc.save('horario-semanal-'+isoDate(new Date())+'.pdf');
 }
 
+
+// ══ EXPORTAR/IMPRIMIR POR RANGO ═══════════════════════════════
+function getRango(panelId){
+  const desde=document.getElementById('rango-desde-'+panelId)?.value;
+  const hasta=document.getElementById('rango-hasta-'+panelId)?.value;
+  if(!desde||!hasta){alert('Selecciona las fechas Desde y Hasta.');return null;}
+  if(desde>hasta){alert('La fecha Desde debe ser anterior a Hasta.');return null;}
+  const dates=[];
+  let d=parseDate(desde);
+  const end=parseDate(hasta);
+  while(d<=end){dates.push(new Date(d));d.setDate(d.getDate()+1);}
+  return{desde,hasta,dates};
+}
+
+function printRango(panelId){
+  const rango=getRango(panelId);
+  if(!rango)return;
+  // Temporarily expand range info
+  const panel=document.getElementById(panelId);
+  const rangeInfo=document.createElement('div');
+  rangeInfo.id='_rangeInfo';
+  rangeInfo.style.cssText='font-size:12px;color:var(--text2);margin-bottom:8px';
+  rangeInfo.textContent='Período: '+fmtFull(rango.desde)+' – '+fmtFull(rango.hasta);
+  panel.insertBefore(rangeInfo,panel.firstChild);
+  // Make panel active for print
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  panel.classList.add('active');
+  window.print();
+  rangeInfo.remove();
+}
+
+function exportRangoPDF(panelId){
+  const rango=getRango(panelId);
+  if(!rango)return;
+  const{desde,hasta,dates}=rango;
+  const{jsPDF}=window.jspdf;
+  const titles={
+    'tab-workers':'Trabajadores','tab-tienda':'Horario de tienda',
+    'tab-schedule':'Horario semanal','tab-calendar':'Cuadrante',
+    'tab-vacaciones':'Vacaciones','tab-summary':'Resumen',
+    'tab-report':'Informe','tab-fichajes':'Fichajes','tab-audit':'Auditoría'
+  };
+  const title=titles[panelId]||'Informe';
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const margin=14;
+
+  doc.setFont('helvetica','bold');doc.setFontSize(14);
+  doc.text('Porxada Iberics · '+title,margin,12);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text('Del '+fmtFull(desde)+' al '+fmtFull(hasta),margin,18);
+  doc.setTextColor(0);
+
+  // For tienda/schedule: render day by day visual
+  if(panelId==='tab-tienda'||panelId==='tab-schedule'){
+    // Group days in chunks of 7
+    const chunks=[];
+    for(let i=0;i<dates.length;i+=7)chunks.push(dates.slice(i,i+7));
+    const pageW=297,pageH=210;
+    const contentW=pageW-margin*2;
+    const nameColW=38;
+    const rowH=14;
+
+    chunks.forEach((chunk,ci)=>{
+      if(ci>0)doc.addPage();
+      const dayColW=(contentW-nameColW)/chunk.length;
+      const headerY=22;
+      const startY=headerY+7;
+
+      if(ci>0){
+        doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Porxada Iberics · '+title,margin,10);
+        doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+        doc.text('Del '+fmtFull(desde)+' al '+fmtFull(hasta)+' · Pág '+(ci+1)+'/'+chunks.length,margin,15);
+        doc.setTextColor(0);
+      }
+
+      // Header
+      doc.setFillColor(24,95,165);doc.rect(margin,headerY,contentW,7,'F');
+      doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(8);
+      doc.text('Trabajador',margin+2,headerY+4.5);
+      chunk.forEach((d,i)=>{
+        const x=margin+nameColW+i*dayColW;
+        const isF=isFestivo(isoDate(d));
+        if(isF){doc.setFillColor(100,80,180);doc.rect(x,headerY,dayColW,7,'F');}
+        doc.setTextColor(255);
+        doc.text(DAYS[d.getDay()]+' '+fmtDate(d),x+dayColW/2,headerY+4.5,{align:'center'});
+      });
+      doc.setTextColor(0);
+
+      const activeWs=workers.filter(w=>chunk.some(d=>{const s=getDayStatus(w,d);return s.type!=='inactive';}));
+      activeWs.forEach((w,wi)=>{
+        const ry=startY+wi*rowH;
+        if(ry+rowH>pageH-margin-8)return;
+        if(wi%2===0){doc.setFillColor(247,247,245);doc.rect(margin,ry,contentW,rowH,'F');}
+        doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(0);
+        doc.text(w.nombre.length>18?w.nombre.substring(0,17)+'…':w.nombre,margin+2,ry+5.5);
+        doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(100);
+        const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+        const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+        const hl=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+        doc.text(hl,margin+2,ry+9.5);doc.setTextColor(0);
+        chunk.forEach((d,i)=>{
+          const x=margin+nameColW+i*dayColW;
+          const s=getDayStatus(w,d);
+          const cp=1.2,bh=rowH-cp*2;
+          if(s.type==='work'){
+            if(w.turno==='both'||w.turno==='morning'){
+              doc.setFillColor(29,158,117);
+              const mh=w.turno==='both'?bh/2-0.3:bh;
+              doc.roundedRect(x+cp,ry+cp,dayColW-cp*2,mh,0.8,0.8,'F');
+              doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(5.5);
+              doc.text(em,x+dayColW/2,ry+cp+(w.turno==='both'?mh/2+0.8:bh/2+0.8),{align:'center'});
+            }
+            if(w.turno==='both'||w.turno==='evening'){
+              doc.setFillColor(15,110,86);
+              const ey=w.turno==='both'?ry+cp+bh/2+0.3:ry+cp;
+              const eh=w.turno==='both'?bh/2-0.3:bh;
+              doc.roundedRect(x+cp,ey,dayColW-cp*2,eh,0.8,0.8,'F');
+              doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(5.5);
+              doc.text(et,x+dayColW/2,ey+eh/2+0.8,{align:'center'});
+            }
+          } else if(s.type==='baja'){doc.setFillColor(239,159,39);doc.roundedRect(x+cp,ry+cp,dayColW-cp*2,bh,0.8,0.8,'F');doc.setTextColor(255);doc.setFontSize(6);doc.text('B',x+dayColW/2,ry+rowH/2+0.8,{align:'center'});}
+          else if(s.type==='vac'){doc.setFillColor(55,138,221);doc.roundedRect(x+cp,ry+cp,dayColW-cp*2,bh,0.8,0.8,'F');doc.setTextColor(255);doc.setFontSize(6);doc.text('V',x+dayColW/2,ry+rowH/2+0.8,{align:'center'});}
+          else if(s.type==='festivo'){doc.setFillColor(175,169,236);doc.roundedRect(x+cp,ry+cp,dayColW-cp*2,bh,0.8,0.8,'F');doc.setTextColor(50,33,92);doc.setFontSize(5);doc.text('FEST',x+dayColW/2,ry+rowH/2+0.8,{align:'center'});}
+          else if(s.type==='libre'||s.type==='sunday'){doc.setFillColor(225,225,222);doc.roundedRect(x+cp,ry+cp,dayColW-cp*2,bh,0.8,0.8,'F');}
+          else{doc.setTextColor(180);doc.setFontSize(6);doc.text('-',x+dayColW/2,ry+rowH/2+0.8,{align:'center'});}
+          doc.setTextColor(0);
+        });
+        doc.setDrawColor(220);doc.setLineWidth(0.2);doc.rect(margin,ry,contentW,rowH,'S');
+      });
+    });
+  } else {
+    // Generic: find tables in panel
+    const panel=document.getElementById(panelId);
+    const tables=panel?panel.querySelectorAll('table'):[];
+    let y=24;
+    if(tables.length>0){
+      tables.forEach(table=>{
+        const head=[[...table.querySelectorAll('thead th')].map(th=>th.textContent.trim())];
+        const body=[...table.querySelectorAll('tbody tr')].map(tr=>[...tr.querySelectorAll('td')].map(td=>td.textContent.trim()));
+        if(head[0].length&&body.length){
+          doc.autoTable({head,body,startY:y,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[24,95,165]},margin:{left:margin,right:margin}});
+          y=doc.lastAutoTable.finalY+8;
+        }
+      });
+    } else {
+      doc.setFontSize(10);doc.text('Exporta el contenido desde la vista de pantalla.',margin,y+10);
+    }
+  }
+
+  // Legend
+  const legendY=205;
+  const legs=[{c:[29,158,117],l:'Mañana'},{c:[15,110,86],l:'Tarde'},{c:[239,159,39],l:'Baja'},{c:[55,138,221],l:'Vacaciones'},{c:[175,169,236],l:'Festivo'}];
+  let lx=margin;
+  legs.forEach(l=>{doc.setFillColor(...l.c);doc.rect(lx,legendY,3,3,'F');doc.setFontSize(7);doc.setTextColor(80);doc.text(l.l,lx+4,legendY+2.5);lx+=4+doc.getTextWidth(l.l)+4;});
+
+  doc.save('porxada-'+title.toLowerCase().replace(/ /g,'-')+'-'+desde+'-'+hasta+'.pdf');
+}
+
+// Init rango inputs when tab opens with sensible defaults
+function initRangoInputs(panelId){
+  const hoy=new Date();
+  const priMes=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+  const fin=new Date(hoy.getFullYear(),hoy.getMonth()+1,0);
+  const desdeEl=document.getElementById('rango-desde-'+panelId);
+  const hastaEl=document.getElementById('rango-hasta-'+panelId);
+  if(desdeEl&&!desdeEl.value) desdeEl.value=isoDate(priMes);
+  if(hastaEl&&!hastaEl.value) hastaEl.value=isoDate(fin);
+}
+
 // ══ EXPORTAR / IMPRIMIR PANELES ═══════════════════════════════
 function printPanel(panelId){
   // Set active panel for print
@@ -2222,13 +2433,14 @@ if(btn)btn.classList.add('active');
 if(name==='tienda'){
   const dp=document.getElementById('tiendaDatePicker');
   if(dp&&!dp.value) dp.value=isoDate(new Date());
+  initRangoInputs('tab-tienda');
   renderTienda();
 }
-if(name==='schedule')renderSchedule();
-if(name==='calendar')renderCalendar();
+if(name==='schedule'){initRangoInputs('tab-schedule');renderSchedule();}
+if(name==='calendar'){initRangoInputs('tab-calendar');renderCalendar();}
 if(name==='summary'){populateSumMonth();renderSummary();}
-if(name==='vacaciones')renderVacaciones();
-if(name==='audit')loadAudit();
+if(name==='vacaciones'){initRangoInputs('tab-vacaciones');renderVacaciones();}
+if(name==='audit'){initRangoInputs('tab-audit');loadAudit();}
 if(name==='fichajes'){
 document.getElementById('fichajesDate').value=isoDate(new Date());
 loadFichajes();
