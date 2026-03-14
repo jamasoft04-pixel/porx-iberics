@@ -1453,13 +1453,17 @@ async function processFichaje(){
   const {data, error} = await sb.rpc('fichar_con_pin', {p_pin: pin, p_tipo: tipo});
   if(error || !data || !data.ok){
     const msg = (data && data.error) ? data.error : (error ? error.message : 'PIN incorrecto');
-    setFichMsg('X ' + msg, 'error');
-    for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.add('error');
-    setTimeout(()=>{ pinClear(); }, 2000);
+    const el = document.getElementById('fichMsg');
+    el.textContent = msg;
+    el.className = 'fich-msg error';
+    for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.classList.add('error');}
+    setTimeout(()=>{ pinClear(); }, 2500);
     return;
   }
-  const labels = {entrada:'Entrada registrada', pausa_inicio:'Pausa iniciada', pausa_fin:'Vuelta de pausa', salida:'Salida registrada'};
-  setFichMsg((labels[data.tipo]||data.tipo) + ' · ' + data.nombre + ' · ' + data.hora, 'success');
+  const labels = {entrada:'ENTRADA REGISTRADA', pausa_inicio:'PAUSA INICIADA', pausa_fin:'VUELTA DE PAUSA', salida:'SALIDA REGISTRADA'};
+  const el = document.getElementById('fichMsg');
+  el.textContent = (labels[data.tipo]||data.tipo) + '  ' + data.nombre + '  ' + data.hora;
+  el.className = 'fich-msg success';
   updatePinDisplay();
   setTimeout(()=>{ pinClear(); }, 3000);
 }
