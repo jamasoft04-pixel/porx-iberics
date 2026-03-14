@@ -742,6 +742,19 @@ if(isAdmin()) p.push(sb.from('usuarios').select('*').order('creado_en'));
 const r=await Promise.all(p);
 workers=r[0].data||[]; bajas=r[1].data||[]; vacaciones=r[2].data||[]; customFestivos=r[3].data||[];
 if(isAdmin()) usuarios=r[4]?.data||[];
+// Assign PINs to workers that don't have one
+const workersNeedingPin = workers.filter(w=>!w.pin);
+for(const w of workersNeedingPin){
+  let pin=null;
+  for(let t=0;t<20;t++){
+    const candidate=String(Math.floor(1000+Math.random()*9000));
+    if(!workers.some(ww=>ww.pin===candidate)){pin=candidate;break;}
+  }
+  if(pin){
+    await sb.from('trabajadores').update({pin}).eq('id',w.id);
+    const i=workers.findIndex(ww=>ww.id===w.id);if(i>=0)workers[i].pin=pin;
+  }
+}
 renderWorkers(); renderFestivos(); renderSchedule();
 renderCalendar(); renderVacaciones(); renderSummary();
 updateAllSelects(); populateSumMonth();
@@ -836,13 +849,36 @@ if(!name){al.innerHTML='<div class="alert alert-w">Introduce el nombre.</div>';r
 if(!hours||hours<1){al.innerHTML='<div class="alert alert-w">Indica las horas semanales.</div>';return;}
 if(!dEl){al.innerHTML='<div class="alert alert-w">Selecciona el día libre.</div>';return;}
 al.innerHTML='';setLoad('wSpin','btnAddWorker',true);
-const{data,error}=await sb.from('trabajadores').insert({nombre:name,horas:hours,turno:shift,dia_libre:parseInt(dEl.value),inicio:start,fin:end}).select().single();
+// Generate unique PIN
+let pin=null;
+for(let t=0;t<20;t++){
+  const candidate=String(Math.floor(1000+Math.random()*9000));
+  const{data:existing}=await sb.from('trabajadores').select('id').eq('pin',candidate).maybeSingle();
+  if(!existing){pin=candidate;break;}
+}
+const{data,error}=await sb.from('trabajadores').insert({nombre:name,horas:hours,turno:shift,dia_libre:parseInt(dEl.value),inicio:start,fin:end,pin}).select().single();
 setLoad('wSpin','btnAddWorker',false);
 if(error){al.innerHTML=`<div class="alert alert-e">${error.message}</div>`;return;}
 workers.push(data);
 al.innerHTML='<div class="alert alert-s">Guardado.</div>';setTimeout(()=>al.innerHTML='',3000);
 document.getElementById('wName').value='';document.querySelectorAll('input[name="dayoff"]').forEach(r=>r.checked=false);
 renderWorkers();updateAllSelects();
+}
+async function regenerarPin(id){
+if(!isAdmin())return;
+let pin=null;
+for(let t=0;t<20;t++){
+  const candidate=String(Math.floor(1000+Math.random()*9000));
+  const{data:existing}=await sb.from('trabajadores').select('id').eq('pin',candidate).maybeSingle();
+  if(!existing){pin=candidate;break;}
+}
+if(!pin){alert('No se pudo generar un PIN único. Inténtalo de nuevo.');return;}
+const{data,error}=await sb.from('trabajadores').update({pin}).eq('id',id).select().single();
+if(error){alert('Error: '+error.message);return;}
+const i=workers.findIndex(w=>w.id===id);if(i>=0)workers[i]=data;
+const el=document.getElementById('ed-pin-'+id);
+if(el)el.value=pin;
+alert('Nuevo PIN generado: '+pin);
 }
 async function saveWorker(id){
 if(!isAdmin()) return;
@@ -857,10 +893,11 @@ if(!name){ al.innerHTML='<div class="alert alert-w">Introduce el nombre.</div>';
 if(!hours||hours<1){ al.innerHTML='<div class="alert alert-w">Indica las horas semanales.</div>'; return; }
 if(!dayEl){ al.innerHTML='<div class="alert alert-w">Selecciona el día libre.</div>'; return; }
 al.innerHTML='';
-const {data,error} = await sb.from('trabajadores').update({
-nombre: name, horas: hours, turno: shift,
-dia_libre: parseInt(dayEl.value), inicio: start, fin: end
-}).eq('id', id).select().single();
+const pinVal = document.getElementById('ed-pin-'+id)?.value.trim();
+if(pinVal && !/^[0-9]{4}$/.test(pinVal)){ al.innerHTML='<div class="alert alert-w">El PIN debe ser 4 dígitos numéricos.</div>'; return; }
+const updateData={nombre:name,horas:hours,turno:shift,dia_libre:parseInt(dayEl.value),inicio:start,fin:end};
+if(pinVal) updateData.pin=pinVal;
+const {data,error} = await sb.from('trabajadores').update(updateData).eq('id', id).select().single();
 if(error){ al.innerHTML='<div class="alert alert-e">'+error.message+'</div>'; return; }
 const i = workers.findIndex(w=>w.id===id);
 if(i>=0) workers[i] = data;
@@ -1003,6 +1040,7 @@ ${isAdmin()?`<div class="detail-panel" id="dp-edit-${w.id}">
 </div>
 <div class="fg"><label>Inicio laboral</label><input type="date" id="ed-start-${w.id}" value="${w.inicio||''}"></div>
 <div class="fg"><label>Fin de contrato</label><input type="date" id="ed-end-${w.id}" value="${w.fin||''}"></div>
+<div class="fg"><label>PIN de fichaje</label><div style="display:flex;gap:6px;align-items:center"><input type="text" id="ed-pin-${w.id}" value="${w.pin||''}" maxlength="4" style="font-family:monospace;font-size:18px;letter-spacing:4px;font-weight:700;width:90px" placeholder="0000"><button class="btn btn-sm" onclick="regenerarPin(${w.id})" type="button">Nuevo PIN</button></div></div>
 </div>
 <div class="fg" style="margin-bottom:10px"><label>Día libre (además del domingo)</label>
 <div class="radio-group">
