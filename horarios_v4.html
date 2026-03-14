@@ -1495,7 +1495,7 @@ document.addEventListener('keydown', e=>{
 
 // ══ FICHAJES — PANEL ADMIN ════════════════════════════════════
 async function loadFichajes(){
-  if(!isAdmin()) return;
+  
   const dateEl = document.getElementById('fichajesDate');
   const date = dateEl?.value || isoDate(new Date());
   if(dateEl && !dateEl.value) dateEl.value = date;
