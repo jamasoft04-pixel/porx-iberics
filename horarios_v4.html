@@ -1448,44 +1448,32 @@ function setFichMsg(text, type){
 async function processFichaje(){
   const pin = pinBuffer;
   pinBuffer = '';
-
-  // Determinar tipo según último fichaje del día
   const hoy = isoDate(new Date());
-  const {data: ults} = await sb.from('fichajes')
-    .select('tipo')
-    .eq('fecha', hoy)
-    .order('creado_en', {ascending: false})
-    .limit(1)
-    .then ? sb.from('fichajes').select('tipo,trabajador_id').eq('fecha',hoy).order('creado_en',{ascending:false}).limit(100) : {data:[]};
-
-  // Llamar función RPC para fichar
-  const tipo = getTipoFichaje(pin, ults?.data || []);
+  const tipo = await getTipoFichaje(pin, hoy);
   const {data, error} = await sb.rpc('fichar_con_pin', {p_pin: pin, p_tipo: tipo});
-
-  if(error || !data?.ok){
-    const msg = data?.error || error?.message || 'Error al fichar';
-    setFichMsg('❌ ' + msg, 'error');
-    for(let i=0;i<4;i++) document.getElementById('pd'+i)?.classList.add('error');
+  if(error || !data || !data.ok){
+    const msg = (data && data.error) ? data.error : (error ? error.message : 'PIN incorrecto');
+    setFichMsg('X ' + msg, 'error');
+    for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.add('error');
     setTimeout(()=>{ pinClear(); }, 2000);
     return;
   }
-
-  const tipoLabel = {entrada:'✅ Entrada', pausa_inicio:'⏸ Pausa iniciada', pausa_fin:'▶ Vuelta de pausa', salida:'🏁 Salida'}[data.tipo] || data.tipo;
-  setFichMsg(`${tipoLabel} · ${data.nombre} · ${data.hora}`, 'success');
+  const labels = {entrada:'Entrada registrada', pausa_inicio:'Pausa iniciada', pausa_fin:'Vuelta de pausa', salida:'Salida registrada'};
+  setFichMsg((labels[data.tipo]||data.tipo) + ' · ' + data.nombre + ' · ' + data.hora, 'success');
   updatePinDisplay();
   setTimeout(()=>{ pinClear(); }, 3000);
 }
 
-async function getTipoFichaje(pin, todayFichajes){
-  // Get last fichaje for this specific pin worker
-  const {data:worker} = await sb.from('trabajadores').select('id').eq('pin',pin).single().catch(()=>({data:null}));
+async function getTipoFichaje(pin, hoy){
+  const res1 = await sb.from('trabajadores').select('id').eq('pin', pin).maybeSingle();
+  const worker = res1.data;
   if(!worker) return 'entrada';
-  const workerFichajes = (todayFichajes||[]).filter(f=>f.trabajador_id===worker.id);
-  const ultimo = workerFichajes[0]?.tipo;
-  if(!ultimo || ultimo==='salida') return 'entrada';
-  if(ultimo==='entrada') return 'pausa_inicio';
-  if(ultimo==='pausa_inicio') return 'pausa_fin';
-  if(ultimo==='pausa_fin') return 'salida';
+  const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', worker.id).eq('fecha', hoy).order('creado_en', {ascending:false}).limit(1).maybeSingle();
+  const ultimo = res2.data;
+  if(!ultimo || ultimo.tipo==='salida') return 'entrada';
+  if(ultimo.tipo==='entrada') return 'pausa_inicio';
+  if(ultimo.tipo==='pausa_inicio') return 'pausa_fin';
+  if(ultimo.tipo==='pausa_fin') return 'salida';
   return 'entrada';
 }
 
