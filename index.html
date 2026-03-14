@@ -1663,14 +1663,29 @@ setFichMsg((labels[data.tipo]||data.tipo) + ' ' + data.nombre + ' ' + data.hora,
 setTimeout(pinClear, 3000);
 }
 async function getTipoFichaje(pin, hoy){
-const res1 = await sb.from('trabajadores').select('id').eq('pin', pin).maybeSingle();
+const res1 = await sb.from('trabajadores').select('id,turno').eq('pin', pin).maybeSingle();
 if(!res1.data) return 'entrada';
-const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', res1.data.id).eq('fecha', hoy).order('creado_en', {ascending:false}).limit(1).maybeSingle();
+const wData = res1.data;
+const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', wData.id).eq('fecha', hoy).order('creado_en', {ascending:false}).limit(1).maybeSingle();
 const ultimo = res2.data ? res2.data.tipo : null;
-if(!ultimo || ultimo==='salida') return 'entrada';
-if(ultimo==='entrada') return 'pausa_inicio';
-if(ultimo==='pausa_inicio') return 'pausa_fin';
-return 'salida';
+if(!ultimo) return 'entrada';
+if(wData.turno === 'both'){
+  // Doble turno: entrada → salida → entrada → salida
+  const res3 = await sb.from('fichajes').select('tipo').eq('trabajador_id', wData.id).eq('fecha', hoy).eq('tipo','entrada').select();
+  const numEntradas = res3.data ? res3.data.length : 0;
+  if(ultimo === 'salida' && numEntradas < 2) return 'entrada';
+  if(ultimo === 'salida' && numEntradas >= 2) return 'entrada'; // reset next day
+  if(ultimo === 'entrada') return 'pausa_inicio';
+  if(ultimo === 'pausa_inicio') return 'pausa_fin';
+  if(ultimo === 'pausa_fin') return 'salida';
+  return 'entrada';
+} else {
+  if(ultimo === 'salida') return 'entrada';
+  if(ultimo === 'entrada') return 'pausa_inicio';
+  if(ultimo === 'pausa_inicio') return 'pausa_fin';
+  if(ultimo === 'pausa_fin') return 'salida';
+  return 'entrada';
+}
 }
 document.addEventListener('keydown', e=>{
 if(document.getElementById('scFichaje')?.classList.contains('active')){
@@ -1995,21 +2010,45 @@ while(d<today&&d<=end){
 const dow=d.getDay();
 const ds=isoDate(d);
 if(dow!==0&&dow!==parseInt(w.dia_libre)&&!isFestivo(ds)){
-const rnd=()=>Math.floor(Math.random()*6);
+// Skip if worker is on baja or vacaciones that day
+const dayStatus=getDayStatus(w,new Date(d));
+if(dayStatus.type==='baja'||dayStatus.type==='vac'||dayStatus.type==='inactive'||dayStatus.type==='festivo') { d.setDate(d.getDate()+1); continue; }
+// Entrada con variación 0-5 min, salida exacta según contrato
+const rndE=()=>Math.floor(Math.random()*6); // 0-5 min variacion entrada
 const hasPause=Math.random()>0.2;
-const isAbsent=Math.random()<0.02;
-const noSalida=Math.random()<0.05;
-if(!isAbsent){
+const noSalida=Math.random()<0.03;
 let mE,mPI,mPF,mS;
 const emM=timeToMins(w.entrada_m||'08:30'),smM=timeToMins(w.salida_m||'14:00');
 const etM=timeToMins(w.entrada_t||'17:00'),stM=timeToMins(w.salida_t||'22:00');
-if(w.turno==='morning'){mE=emM+rnd();mPI=emM+Math.round((smM-emM)/2)+rnd();mPF=mPI+10+rnd();mS=smM+rnd();}
-else if(w.turno==='evening'){mE=etM+rnd();mPI=etM+Math.round((stM-etM)/2)+rnd();mPF=mPI+10+rnd();mS=stM+rnd();}
-else{mE=emM+rnd();mPI=smM+rnd();mPF=etM+rnd();mS=stM+rnd();}
 const toTime=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':00';
-batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(mE)});
-if(hasPause){batch.push({trabajador_id:w.id,tipo:'pausa_inicio',fecha:ds,hora:toTime(mPI)});batch.push({trabajador_id:w.id,tipo:'pausa_fin',fecha:ds,hora:toTime(mPF)});}
-if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(mS)});
+if(w.turno==='morning'){
+  // Solo mañana: entrada con variación, pausa a mitad, salida exacta
+  mE=emM+rndE();
+  const mPI=emM+Math.round((smM-emM)/2)+rndE();
+  const mPF=mPI+10;
+  mS=smM;
+  batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(mE)});
+  if(hasPause){batch.push({trabajador_id:w.id,tipo:'pausa_inicio',fecha:ds,hora:toTime(mPI)});batch.push({trabajador_id:w.id,tipo:'pausa_fin',fecha:ds,hora:toTime(mPF)});}
+  if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(mS)});
+} else if(w.turno==='evening'){
+  // Solo tarde: entrada con variación, pausa a mitad, salida exacta
+  mE=etM+rndE();
+  const ePI=etM+Math.round((stM-etM)/2)+rndE();
+  const ePF=ePI+10;
+  mS=stM;
+  batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(mE)});
+  if(hasPause){batch.push({trabajador_id:w.id,tipo:'pausa_inicio',fecha:ds,hora:toTime(ePI)});batch.push({trabajador_id:w.id,tipo:'pausa_fin',fecha:ds,hora:toTime(ePF)});}
+  if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(mS)});
+} else {
+  // Mañana y tarde: dos turnos separados, sin pausa (el descanso es entre turnos)
+  // Turno mañana
+  const entM=emM+rndE();
+  batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(entM)});
+  if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(smM)});
+  // Turno tarde (nueva entrada)
+  const entT=etM+rndE();
+  batch.push({trabajador_id:w.id,tipo:'entrada',fecha:ds,hora:toTime(entT)});
+  if(!noSalida)batch.push({trabajador_id:w.id,tipo:'salida',fecha:ds,hora:toTime(stM)});
 }
 }
 d.setDate(d.getDate()+1);
