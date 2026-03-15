@@ -2554,7 +2554,7 @@ function getRango(panelId){
   const dates=[];
   let d=new Date(start);
   while(d<=end){dates.push(new Date(d));d.setDate(d.getDate()+1);}
-  if(dates.length>63){alert('El rango máximo es 9 semanas. Reduce el período.');return null;}
+
   return{desde:isoDate(start),hasta:isoDate(end),desdeOrig:desde,hastaOrig:hasta,dates};
 }
 
