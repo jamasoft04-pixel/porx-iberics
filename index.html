@@ -1822,8 +1822,8 @@ if(!usuarios.length){el.innerHTML='<div class="empty">Sin usuarios.</div>';retur
 el.innerHTML=usuarios.map(u=>{
 const isMe=u.id===currentUser?.id;
 return`<div class="user-row">
-<div class="avatar" style="background:${u.rol==='admin'?'#E6F1FB':'#EEEDFE'};color:${u.rol==='admin'?'var(--blue2)':'#3C3489'}">${(u.nombre||u.email).substring(0,2).toUpperCase()}</div>
-<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${u.nombre||'—'}${isMe?' <span style="font-size:10px;color:var(--text2)">(tú)</span>':''}</div><div style="font-size:11px;color:var(--text2)">${u.email}</div></div>
+<div class="avatar" style="background:${u.rol==='admin'?'#E6F1FB':'#EEEDFE'};color:${u.rol==='admin'?'var(--blue2)':'#3C3489'}">${((u.nombre||u.email||'??').substring(0,2)).toUpperCase()}</div>
+<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${u.nombre||u.email||'—'}${isMe?' <span style="font-size:10px;color:var(--text2)">(tú)</span>':''}</div><div style="font-size:11px;color:var(--text2)">${u.email}</div></div>
 <select onchange="changeRol('${u.id}',this.value)" ${isMe?'disabled':''} style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
 <option value="supervisor"${u.rol==='supervisor'?' selected':''}>Supervisor</option>
 <option value="admin"${u.rol==='admin'?' selected':''}>Admin</option>
