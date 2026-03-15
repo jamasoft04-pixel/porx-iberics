@@ -3033,9 +3033,22 @@ async function exportInformeFichajesPDF(){
   y=doc.lastAutoTable.finalY+12;
 
   // Per worker, per month detail
+  // Date range: Feb 2025 to today
+  const rangeStart=new Date(2025,1,1);
+  const rangeEnd=new Date(); rangeEnd.setHours(0,0,0,0);
+
   workers.forEach(w=>{
+    // Build set of all months worker was active in range
+    const workerStart=w.inicio?parseDate(w.inicio):rangeStart;
+    const workerEnd=w.fin?parseDate(w.fin):rangeEnd;
+    const effectiveStart=workerStart<rangeStart?rangeStart:workerStart;
+    const effectiveEnd=workerEnd>rangeEnd?rangeEnd:workerEnd;
+    if(effectiveStart>effectiveEnd) return;
+
+    // Build fichajes index for this worker
     const wf=allFichs.filter(f=>f.trabajador_id===w.id);
-    if(!wf.length) return;
+    const fichByDate={};
+    wf.forEach(f=>{if(!fichByDate[f.fecha])fichByDate[f.fecha]=[];fichByDate[f.fecha].push(f);});
 
     doc.addPage();
     y=14;
@@ -3052,34 +3065,42 @@ async function exportInformeFichajesPDF(){
     doc.setTextColor(0);
     y+=14;
 
-    // Group by month
+    // Build all months in range
     const byMonth={};
-    wf.forEach(f=>{
-      const ym=f.fecha.substring(0,7);
+    let d=new Date(effectiveStart);
+    while(d<=effectiveEnd){
+      const ds=isoDate(d);
+      const ym=ds.substring(0,7);
       if(!byMonth[ym])byMonth[ym]=[];
-      byMonth[ym].push(f);
-    });
+      byMonth[ym].push(ds);
+      d.setDate(d.getDate()+1);
+    }
 
-    Object.entries(byMonth).sort().forEach(([ym,mFichs])=>{
+    Object.entries(byMonth).sort().forEach(([ym,fechas])=>{
       const[yr,mo]=ym.split('-');
       const monthLabel=MONTHS[parseInt(mo)-1]+' '+yr;
 
-      // Group by day within month
-      const byDay={};
-      mFichs.forEach(f=>{if(!byDay[f.fecha])byDay[f.fecha]=[];byDay[f.fecha].push(f);});
-
-      // Calculate monthly totals
-      let totalMins=0,diasTrabajados=0;
-      const rows=Object.entries(byDay).sort().map(([fecha,dayFichs])=>{
+      // Calculate monthly totals including bajas/vac/libre
+      let totalMins=0,diasTrabajados=0,diasBaja=0,diasVac=0,diasLibre=0,diasFest=0;
+      const rows=fechas.map(fecha=>{
+        const dayFichs=fichByDate[fecha]||[];
         const sorted=dayFichs.sort((a,b)=>a.hora.localeCompare(b.hora));
         const pausaI=sorted.find(f=>f.tipo==='pausa_inicio');
         const pausaF=sorted.find(f=>f.tipo==='pausa_fin');
         const dt=new Date(fecha+'T12:00:00');
         const dLabel=dt.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
+        const dayStatus=getDayStatus(w,dt);
         let mins=0;
 
+        // Non-working days - show status instead of fichaje
+        if(dayStatus.type==='baja'){diasBaja++;return[dLabel,'BAJA','—','—','—','—'];}
+        if(dayStatus.type==='vac'){diasVac++;return[dLabel,'VACACIONES','—','—','—','—'];}
+        if(dayStatus.type==='festivo'){diasFest++;return[dLabel,'FESTIVO: '+(dayStatus.name||'').substring(0,12),'—','—','—','—'];}
+        if(dayStatus.type==='sunday'||dayStatus.type==='libre'){diasLibre++;return null;} // skip libre/domingo
+        if(dayStatus.type==='inactive') return null;
+
+        // Working day
         if(w.turno==='both'){
-          // Assign by time order: entry1 < exit1 < entry2 < exit2
           const entradaM=sorted.find(f=>f.tipo==='entrada')||null;
           const salidaM=entradaM?sorted.find(f=>f.tipo==='salida'&&f.hora>entradaM.hora)||null:null;
           const entradaT=salidaM?sorted.find(f=>f.tipo==='entrada'&&f.hora>salidaM.hora)||null:null;
@@ -3087,7 +3108,7 @@ async function exportInformeFichajesPDF(){
           if(entradaM&&salidaM) mins+=timeToMins(salidaM.hora)-timeToMins(entradaM.hora);
           if(entradaT&&salidaT) mins+=timeToMins(salidaT.hora)-timeToMins(entradaT.hora);
           if(mins>0){totalMins+=mins;diasTrabajados++;}
-          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':(dayFichs.length?'Incompl.':'Sin fich.');
           return[dLabel,
             entradaM?entradaM.hora.substring(0,5):'—',
             salidaM?salidaM.hora.substring(0,5):'—',
@@ -3103,7 +3124,7 @@ async function exportInformeFichajesPDF(){
             if(pausaI&&pausaF) mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));
           }
           if(mins>0){totalMins+=mins;diasTrabajados++;}
-          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':(dayFichs.length?'Incompl.':'Sin fich.');
           return[dLabel,
             entrada?entrada.hora.substring(0,5):'—',
             pausaI?pausaI.hora.substring(0,5):'—',
@@ -3112,7 +3133,7 @@ async function exportInformeFichajesPDF(){
             horasStr
           ];
         }
-      });
+      }).filter(r=>r!==null);
 
       const totalH=Math.floor(totalMins/60),totalM=totalMins%60;
       const objetivo=Math.round(w.horas*4.33);
@@ -3132,7 +3153,8 @@ async function exportInformeFichajesPDF(){
       doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(24,95,165);
       doc.text(monthLabel,margin+4,y+5);
       doc.setFontSize(9);doc.setTextColor(60);
-      doc.text(diasTrabajados+' dias · '+totalHStr+' / objetivo ~'+objetivo+'h',pageW-margin-4,y+5,{align:'right'});
+      const extras=[]; if(diasBaja>0)extras.push(diasBaja+'d baja'); if(diasVac>0)extras.push(diasVac+'d vac'); if(diasFest>0)extras.push(diasFest+'d fest');
+      doc.text(diasTrabajados+' trab. · '+totalHStr+' / ~'+objetivo+'h'+(extras.length?' · '+extras.join(' · '):''),pageW-margin-4,y+5,{align:'right'});
       doc.setTextColor(0);
       y+=9;
 
