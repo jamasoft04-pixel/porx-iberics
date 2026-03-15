@@ -436,10 +436,17 @@ tr:last-child td{border-bottom:none}
     <!-- TRABAJADORES -->
     <div class="panel active" id="tab-workers">
       <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
-        <input type="date" id="rango-desde-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
-        <span style="font-size:12px;color:var(--text2)">hasta</span>
-        <input type="date" id="rango-hasta-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Exportar:</span>
+        <select id="workersPDFFilter" onchange="toggleWorkerRango()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+          <option value="activos">Trabajadores actuales</option>
+          <option value="rango">Por rango de fechas</option>
+          <option value="todos">Todos los trabajadores</option>
+        </select>
+        <div id="workerRangoBar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
+          <input type="date" id="rango-desde-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+          <span style="font-size:12px;color:var(--text2)">hasta</span>
+          <input type="date" id="rango-hasta-tab-workers" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        </div>
         <button class="btn btn-sm btn-export" onclick="exportWorkersPDF()">PDF</button>
         <button class="btn btn-sm" onclick="printWorkers()" style="color:var(--text2)">&#128438; Imprimir</button>
       </div>
@@ -2777,6 +2784,37 @@ async function exportPanelPDF(panelId){
 
 
 // ══ EXPORTAR TRABAJADORES ════════════════════════════════════
+
+function toggleWorkerRango(){
+  const v=document.getElementById('workersPDFFilter')?.value;
+  const bar=document.getElementById('workerRangoBar');
+  if(bar) bar.style.display=v==='rango'?'flex':'none';
+}
+
+function getWorkersForPDF(){
+  const filter=document.getElementById('workersPDFFilter')?.value||'activos';
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=isoDate(today);
+  if(filter==='activos'){
+    return workers.filter(w=>{
+      const st=workerStatus(w,today);
+      return st==='activo'||st==='baja'||st==='vac';
+    });
+  }
+  if(filter==='rango'){
+    const desde=document.getElementById('rango-desde-tab-workers')?.value;
+    const hasta=document.getElementById('rango-hasta-tab-workers')?.value;
+    if(!desde||!hasta){alert('Selecciona el rango de fechas.');return null;}
+    return workers.filter(w=>{
+      // Worker was active at any point in the range
+      const wStart=w.inicio||'2000-01-01';
+      const wEnd=w.fin||'2099-12-31';
+      return wStart<=hasta && wEnd>=desde;
+    });
+  }
+  return workers; // todos
+}
+
 function printWorkers(){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-workers').classList.add('active');
@@ -2803,7 +2841,14 @@ function exportWorkersPDF(){
 
   // Only show active workers (skip fully inactive with no contract overlap)
   const todayStr=isoDate(today);
-  workers.forEach((w,wi)=>{
+  const filteredWorkers=getWorkersForPDF();
+  if(!filteredWorkers) return;
+  const filter=document.getElementById('workersPDFFilter')?.value||'activos';
+  const filterLabel=filter==='activos'?'Trabajadores actuales':filter==='rango'?'Rango: '+fmtFull(document.getElementById('rango-desde-tab-workers')?.value||'')+' – '+fmtFull(document.getElementById('rango-hasta-tab-workers')?.value||''):'Todos los trabajadores';
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text(filterLabel+' · '+filteredWorkers.length+' trabajador'+(filteredWorkers.length!==1?'es':''),margin,18);
+  doc.setTextColor(0);
+  filteredWorkers.forEach((w,wi)=>{
     const wb=workerBajas(w.id);
     // Filter vacaciones: only show relevant (within contract period and not too old)
     const allWv=workerVacs(w.id);
@@ -2817,7 +2862,7 @@ function exportWorkersPDF(){
     });
     const st=workerStatus(w,today);
     // Skip fully inactivo workers with no future contract
-    if(st==='inactivo' && w.fin && w.fin < todayStr) return;
+    if(filter==='activos' && st==='inactivo') return;
     const stLabel=st==='baja'?'Baja':st==='vac'?'Vacaciones':st==='activo'?'Activo':st==='pending'?'Pendiente':'Inactivo';
     const dh=Math.round(w.horas/5*10)/10;
     const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
