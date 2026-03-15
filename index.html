@@ -355,6 +355,7 @@ tr:last-child td{border-bottom:none}
       <button class="tab" onclick="showTab('calendar',this)">Cuadrante</button>
       <button class="tab" onclick="showTab('schedule',this)">Semana</button>
       <button class="tab" onclick="showTab('vacaciones',this)">Vacaciones</button>
+      <button class="tab" onclick="showTab('festivos',this)">Festivos</button>
       <button class="tab" onclick="showTab('summary',this)">Resumen</button>
       <button class="tab" onclick="showTab('report',this)">Informe</button>
       <button class="tab" id="tabUsuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</button>
@@ -612,6 +613,50 @@ tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+
+    <!-- FESTIVOS -->
+    <div class="panel" id="tab-festivos">
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Rango:</span>
+        <input type="date" id="rango-desde-tab-festivos" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2)">hasta</span>
+        <input type="date" id="rango-hasta-tab-festivos" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <button class="btn btn-sm btn-export" onclick="exportRangoPDF('tab-festivos')">PDF</button>
+        <button class="btn btn-sm" onclick="printRango('tab-festivos')" style="color:var(--text2)">&#128438; Imprimir</button>
+      </div>
+
+      <div class="card" id="addFestivoCard">
+        <div class="stitle">Añadir festivo personalizado</div>
+        <div class="form-grid">
+          <div class="fg"><label>Fecha</label><input type="date" id="fDate"></div>
+          <div class="fg" style="grid-column:span 2"><label>Descripción / Motivo</label><input type="text" id="fDesc" placeholder="Nombre del festivo o motivo"></div>
+          <div class="fg"><label>Tipo</label>
+            <select id="fTipo">
+              <option value="custom">Personalizado</option>
+              <option value="local">Local</option>
+              <option value="catalan">Catalán</option>
+              <option value="nacional">Nacional</option>
+            </select>
+          </div>
+        </div>
+        <div id="fAlert"></div>
+        <div class="form-actions">
+          <span id="fSpin" style="display:none" class="loading"><span class="spinner"></span></span>
+          <button class="btn btn-primary" onclick="addFestivo()">Añadir festivo</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="stitle">Festivos personalizados</div>
+        <div id="festivosCustomList"></div>
+      </div>
+
+      <div class="card">
+        <div class="stitle">Festivos fijos 2025–2026 (nacionales, catalanes y de Granollers)</div>
+        <div id="festivosFijos" class="festivos-list"></div>
+      </div>
+    </div>
+
     <!-- RESUMEN -->
     <div class="panel" id="tab-summary">
       <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -854,6 +899,7 @@ document.getElementById('tabAudit').style.display=isAdmin()?'':'none';
 document.getElementById('tabFichajes').style.display=isAdmin()?'':'none';
 document.getElementById('addWorkerCard').style.display=isAdmin()?'block':'none';
 document.getElementById('addVacCard').style.display=isAdmin()?'block':'none';
+  document.getElementById('addFestivoCard').style.display=isAdmin()?'block':'none';
 }
 async function loadAll(){
 const p=[
@@ -1168,7 +1214,67 @@ await sb.from('vacaciones').delete().eq('id',id);
 vacaciones=vacaciones.filter(v=>v.id!==id);renderVacaciones();renderCalendar();renderSchedule();
 }
 function renderFestivos(){
-document.getElementById('festivosFijos')?.replaceWith(Object.assign(document.createElement('div'),{id:'festivosFijos',className:'festivos-list',innerHTML:Object.entries(FESTIVOS_FIJOS).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>{const p=d.split('-');return`<span class="fest-tag">${p[2]}/${p[1]}/${p[0]} · ${n}</span>`;}).join('')}));
+  const fijos=document.getElementById('festivosFijos');
+  if(fijos) fijos.innerHTML=Object.entries(FESTIVOS_FIJOS).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>{const p=d.split('-');return`<span class="fest-tag">${p[2]}/${p[1]}/${p[0]} · ${n}</span>`;}).join('');
+
+  const customEl=document.getElementById('festivosCustomList');
+  if(!customEl) return;
+  if(!customFestivos.length){
+    customEl.innerHTML='<div class="empty">Sin festivos personalizados.</div>';
+    return;
+  }
+  customEl.innerHTML=customFestivos.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(f=>{
+    const p=f.fecha.split('-');
+    const editing=customEl.dataset.editing===String(f.id);
+    if(editing){
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <input type="date" id="fe-date-${f.id}" value="${f.fecha}" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <input type="text" id="fe-desc-${f.id}" value="${f.descripcion}" style="flex:1;font-size:13px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);min-width:160px">
+        <select id="fe-tipo-${f.id}" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+          <option value="custom" ${f.tipo==='custom'?'selected':''}>Personalizado</option>
+          <option value="local" ${f.tipo==='local'?'selected':''}>Local</option>
+          <option value="catalan" ${f.tipo==='catalan'?'selected':''}>Catalán</option>
+          <option value="nacional" ${f.tipo==='nacional'?'selected':''}>Nacional</option>
+        </select>
+        <button class="btn btn-sm btn-primary" onclick="saveFestivo(${f.id})">Guardar</button>
+        <button class="btn btn-sm" onclick="cancelEditFestivo()">Cancelar</button>
+      </div>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span class="fest-tag" style="font-size:12px">${p[2]}/${p[1]}/${p[0]}</span>
+      <span style="flex:1;font-size:13px;font-weight:600">${f.descripcion}</span>
+      <span style="font-size:11px;color:var(--text2);padding:2px 8px;background:var(--bg2);border-radius:10px">${f.tipo}</span>
+      ${isAdmin()?`<button class="btn btn-sm" onclick="editFestivo(${f.id})">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteFestivo(${f.id})">×</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function editFestivo(id){
+  const el=document.getElementById('festivosCustomList');
+  if(el) el.dataset.editing=String(id);
+  renderFestivos();
+  setTimeout(()=>document.getElementById('fe-desc-'+id)?.focus(),50);
+}
+
+function cancelEditFestivo(){
+  const el=document.getElementById('festivosCustomList');
+  if(el) delete el.dataset.editing;
+  renderFestivos();
+}
+
+async function saveFestivo(id){
+  if(!isAdmin())return;
+  const fecha=document.getElementById('fe-date-'+id)?.value;
+  const desc=document.getElementById('fe-desc-'+id)?.value.trim();
+  const tipo=document.getElementById('fe-tipo-'+id)?.value;
+  if(!fecha||!desc){alert('Rellena fecha y descripción.');return;}
+  const{data,error}=await sb.from('festivos').update({fecha,descripcion:desc,tipo}).eq('id',id).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  const i=customFestivos.findIndex(f=>f.id===id);
+  if(i>=0) customFestivos[i]=data;
+  cancelEditFestivo();
+  renderCalendar();renderSchedule();
 }
 async function addFestivo(){
 if(!isAdmin())return;
@@ -2695,17 +2801,30 @@ function exportWorkersPDF(){
 
   let y=24;
 
+  // Only show active workers (skip fully inactive with no contract overlap)
+  const todayStr=isoDate(today);
   workers.forEach((w,wi)=>{
     const wb=workerBajas(w.id);
-    const wv=workerVacs(w.id);
+    // Filter vacaciones: only show relevant (within contract period and not too old)
+    const allWv=workerVacs(w.id);
+    const wv=allWv.filter(v=>{
+      // Exclude if contract ended before vacaciones started
+      if(w.fin && v.vacaciones_inicio > w.fin) return false;
+      // Exclude if vacaciones ended more than 2 years ago
+      const cutoff=new Date(today);cutoff.setFullYear(today.getFullYear()-2);
+      if(v.vacaciones_fin < isoDate(cutoff)) return false;
+      return true;
+    });
     const st=workerStatus(w,today);
+    // Skip fully inactivo workers with no future contract
+    if(st==='inactivo' && w.fin && w.fin < todayStr) return;
     const stLabel=st==='baja'?'Baja':st==='vac'?'Vacaciones':st==='activo'?'Activo':st==='pending'?'Pendiente':'Inactivo';
     const dh=Math.round(w.horas/5*10)/10;
     const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
     const et=(w.entrada_t||'17:00').substring(0,5),st2=(w.salida_t||'22:00').substring(0,5);
 
     // Check page space
-    const neededH=28+(wb.length+wv.length)*6+10;
+    const neededH=28+(wb.length+wv.length)*6+16;
     if(y+neededH>285){doc.addPage();y=14;}
 
     // Worker header bar
@@ -2979,6 +3098,7 @@ if(name==='schedule'){initRangoInputs('tab-schedule');renderSchedule();}
 if(name==='calendar'){initRangoInputs('tab-calendar');renderCalendar();}
 if(name==='summary'){populateSumMonth();renderSummary();}
 if(name==='vacaciones'){initRangoInputs('tab-vacaciones');renderVacaciones();}
+  if(name==='festivos'){initRangoInputs('tab-festivos');renderFestivos();}
 if(name==='audit'){initRangoInputs('tab-audit');loadAudit();}
 if(name==='fichajes'){
 document.getElementById('fichajesDate').value=isoDate(new Date());
