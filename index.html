@@ -933,7 +933,7 @@ function updateAllSelects(){
 const opts='<option value="all">Todos</option>'+workers.map(w=>`<option value="${w.id}">${w.nombre}</option>`).join('');
 ['sumWorker','calWorker','vacResWorker'].forEach(id=>{const el=document.getElementById(id);if(el){const v=el.value;el.innerHTML=opts;el.value=v||'all';}});
 const vacSel=document.getElementById('vacWorker');
-if(vacSel) vacSel.innerHTML=workers.map(w=>`<option value="${w.id}">${w.nombre}</option>`).join('');
+if(vacSel) vacSel.innerHTML='<option value="all">-- Todos los trabajadores --</option>'+workers.map(w=>`<option value="${w.id}">${w.nombre}</option>`).join('');
 updateHistWorkerSelect();
 }
 function updateHistWorkerSelect(){
@@ -1057,21 +1057,29 @@ setTimeout(()=>{document.getElementById('wd-'+wid)?.classList.add('open');docume
 }
 async function addVacacion(){
 if(!isAdmin())return;
-const wid=parseInt(document.getElementById('vacWorker').value);
+const widVal=document.getElementById('vacWorker').value;
 const anio=parseInt(document.getElementById('vacAnio').value);
 const start=document.getElementById('vacStart').value;
 const end=document.getElementById('vacEnd').value;
 const dias=parseFloat(document.getElementById('vacDias').value);
 const motivo=document.getElementById('vacMotivo').value.trim()||'Vacaciones';
 const al=document.getElementById('vacAlert');
-if(!wid||!start||!end){al.innerHTML='<div class="alert alert-w">Rellena trabajador, inicio y fin.</div>';return;}
+if(!widVal||!start||!end){al.innerHTML='<div class="alert alert-w">Rellena trabajador, inicio y fin.</div>';return;}
 if(start>end){al.innerHTML='<div class="alert alert-w">El inicio debe ser anterior al fin.</div>';return;}
 al.innerHTML='';setLoad('vacSpin',null,true);
-const{data,error}=await sb.from('vacaciones').insert({trabajador_id:wid,anio,dias_derecho:dias,vacaciones_inicio:start,vacaciones_fin:end,motivo,aprobado:true,creado_por:currentUser.id}).select().single();
+const targetWorkers=widVal==='all'?workers:workers.filter(w=>w.id===parseInt(widVal));
+let added=0,errors=0;
+for(const w of targetWorkers){
+const{data,error}=await sb.from('vacaciones').insert({
+trabajador_id:w.id,anio,dias_derecho:dias,
+vacaciones_inicio:start,vacaciones_fin:end,
+motivo,aprobado:true,creado_por:currentUser.id
+}).select().single();
+if(error)errors++;else{vacaciones.push(data);added++;}
+}
 setLoad('vacSpin',null,false);
-if(error){al.innerHTML=`<div class="alert alert-e">${error.message}</div>`;return;}
-vacaciones.push(data);
-al.innerHTML='<div class="alert alert-s">Vacaciones guardadas.</div>';setTimeout(()=>al.innerHTML='',3000);
+if(errors>0){al.innerHTML=`<div class="alert alert-w">${added} añadidos, ${errors} errores.</div>`;}
+else{al.innerHTML=`<div class="alert alert-s">${added===1?'Vacaciones guardadas.':added+' trabajadores actualizados.'}</div>`;setTimeout(()=>al.innerHTML='',3000);}
 document.getElementById('vacStart').value='';document.getElementById('vacEnd').value='';
 renderVacaciones();renderCalendar();renderSchedule();
 }
