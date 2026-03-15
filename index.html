@@ -1712,7 +1712,7 @@ const d = parseDate(date);
 const activeWorkers = workers.filter(w=>{ const s=parseDate(w.inicio),e=parseDate(w.fin); return(!s||d>=s)&&(!e||d<=e); });
 let present=0,absent=0,onPause=0,done=0;
 const rows = activeWorkers.map(w=>{
-const wf=fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
+const wf=fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.hora.localeCompare(b.hora));
 const entradas=wf.filter(f=>f.tipo==='entrada');
 const salidas=wf.filter(f=>f.tipo==='salida');
 const pausaI=wf.find(f=>f.tipo==='pausa_inicio');
@@ -2782,7 +2782,7 @@ async function exportInformeFichajesPDF(){
       // Calculate monthly totals
       let totalMins=0,diasTrabajados=0;
       const rows=Object.entries(byDay).sort().map(([fecha,dayFichs])=>{
-        const sorted=dayFichs.sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
+        const sorted=dayFichs.sort((a,b)=>a.hora.localeCompare(b.hora));
         const entradas=sorted.filter(f=>f.tipo==='entrada');
         const salidas=sorted.filter(f=>f.tipo==='salida');
         const pausaI=sorted.find(f=>f.tipo==='pausa_inicio');
