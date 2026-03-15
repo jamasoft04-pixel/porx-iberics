@@ -253,7 +253,7 @@ tr:last-child td{border-bottom:none}
 .fich-stat{background:var(--bg2);border-radius:var(--r);padding:10px;text-align:center}
 .fich-stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:2px}
 .fich-stat-val{font-size:22px;font-weight:700}
-.fich-row{display:grid;grid-template-columns:1fr repeat(4,70px) 65px;gap:4px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:12px}
+.fich-row{display:grid;grid-template-columns:1fr repeat(5,65px) 60px;gap:4px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:12px}
 .fich-row.header{background:var(--blue);color:#fff;font-weight:700;font-size:11px;border-color:var(--blue)}
 .fich-row.absent{opacity:.5}
 .fich-time-cell{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
@@ -266,7 +266,7 @@ tr:last-child td{border-bottom:none}
 .pin-chip code{font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;color:var(--blue)}
 .copy-btn{cursor:pointer;color:var(--text2);font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg)}
 .copy-btn:hover{background:var(--bg2)}
-@media(max-width:560px){.fich-row{grid-template-columns:1fr repeat(2,65px)}.fich-hide-sm{display:none}}
+@media(max-width:560px){.fich-row{grid-template-columns:1fr repeat(2,60px)}.fich-hide-sm{display:none}}
 
 
 /* EXPORT BAR */
@@ -393,11 +393,12 @@ tr:last-child td{border-bottom:none}
       <div class="card" style="padding:.75rem;margin-bottom:1rem">
         <div class="fich-row header">
           <span>Trabajador</span>
-          <span style="text-align:center">Entrada</span>
+          <span style="text-align:center">Ent.M</span>
+          <span style="text-align:center" class="fich-hide-sm">Sal.M</span>
+          <span style="text-align:center" class="fich-hide-sm">Ent.T</span>
+          <span style="text-align:center">Sal.T</span>
           <span style="text-align:center" class="fich-hide-sm">Pausa</span>
-          <span style="text-align:center" class="fich-hide-sm">Vuelta</span>
-          <span style="text-align:center">Salida</span>
-          <span style="text-align:center">H.Real</span>
+          <span style="text-align:center">Horas</span>
         </div>
         <div id="fichajesList"></div>
       </div>
@@ -421,9 +422,10 @@ tr:last-child td{border-bottom:none}
             <button class="btn btn-sm btn-export" onclick="exportHistorialXLS()">Excel</button>
           </div>
         </div>
-        <div style="margin-bottom:12px">
-          <button class="btn btn-sm btn-warn" onclick="generarFichajesEjemplo()" id="btnGenFichajes">Generar fichajes de ejemplo (datos históricos)</button>
-          <span id="genFichajesMsg" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
+        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-sm btn-warn" onclick="generarFichajesEjemplo()" id="btnGenFichajes">Generar fichajes de ejemplo</button>
+          <button class="btn btn-blue" onclick="exportInformeFichajesPDF()" style="font-size:13px;padding:7px 16px">&#128196; Informe completo mes a mes (PDF)</button>
+          <span id="genFichajesMsg" style="font-size:12px;color:var(--text2)"></span>
         </div>
         <div id="historialList"></div>
       </div>
@@ -1709,23 +1711,39 @@ const d = parseDate(date);
 const activeWorkers = workers.filter(w=>{ const s=parseDate(w.inicio),e=parseDate(w.fin); return(!s||d>=s)&&(!e||d<=e); });
 let present=0,absent=0,onPause=0,done=0;
 const rows = activeWorkers.map(w=>{
-const wf = fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
-const entrada=wf.find(f=>f.tipo==='entrada');
+const wf=fichs.filter(f=>f.trabajador_id===w.id).sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
+const entradas=wf.filter(f=>f.tipo==='entrada');
+const salidas=wf.filter(f=>f.tipo==='salida');
 const pausaI=wf.find(f=>f.tipo==='pausa_inicio');
 const pausaF=wf.find(f=>f.tipo==='pausa_fin');
-const salida=wf.find(f=>f.tipo==='salida');
+const entrada=entradas[0]||null;
+const salidaM=w.turno==='both'?(salidas[0]||null):null;
+const entradaT=w.turno==='both'?(entradas[1]||null):null;
+const salida=w.turno==='both'?(salidas[1]||null):(salidas[0]||null);
 if(!entrada) absent++;
-else if(salida){done++;present++;}
-else if(pausaI&&!pausaF){onPause++;present++;}
-else present++;
+else if(w.turno==='both'){
+  if(salidas.length>=2){done++;present++;}
+  else{present++;}
+} else {
+  if(salida){done++;present++;}
+  else if(pausaI&&!pausaF){onPause++;present++;}
+  else present++;
+}
 let horas='—';
 if(entrada){
-const fin=salida?salida.hora:(date===hoy?new Date().toTimeString().substring(0,8):null);
-if(fin){ let m=timeToMins(fin)-timeToMins(entrada.hora); if(pausaI&&pausaF)m-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora)); if(m>0)horas=Math.floor(m/60)+'h '+(m%60)+'m'; }
+  if(w.turno==='both'){
+    let m=0;
+    if(salidaM) m+=timeToMins(salidaM.hora)-timeToMins(entrada.hora);
+    if(entradaT&&salida) m+=timeToMins(salida.hora)-timeToMins(entradaT.hora);
+    if(m>0) horas=Math.floor(m/60)+'h '+(m%60)+'m';
+  } else {
+    const fin=salida?salida.hora:(date===hoy?new Date().toTimeString().substring(0,8):null);
+    if(fin){let m=timeToMins(fin)-timeToMins(entrada.hora);if(pausaI&&pausaF)m-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));if(m>0)horas=Math.floor(m/60)+'h '+(m%60)+'m';}
+  }
 }
-const estado=!entrada?'none':salida?'out':pausaI&&!pausaF?'pause':'in';
-const estadoLabel=!entrada?'Sin fichar':salida?'Completado':pausaI&&!pausaF?'En pausa':'Trabajando';
-return{w,entrada,pausaI,pausaF,salida,horas,estado,estadoLabel};
+const estado=!entrada?'none':w.turno==='both'?(salidas.length>=2?'out':'in'):(salida?'out':pausaI&&!pausaF?'pause':'in');
+const estadoLabel=!entrada?'Sin fichar':w.turno==='both'?(salidas.length>=2?'Completado':entradas.length>=2?'Turno tarde':'Turno manana'):(salida?'Completado':pausaI&&!pausaF?'En pausa':'Trabajando');
+return{w,entrada,salidaM,entradaT,salida,pausaI,pausaF,horas,estado,estadoLabel};
 });
 const stats = document.getElementById('fichajesStats');
 if(stats) stats.innerHTML=`
@@ -1737,14 +1755,12 @@ if(stats) stats.innerHTML=`
 const list = document.getElementById('fichajesList');
 if(list) list.innerHTML = rows.map(r=>`
 <div class="fich-row${!r.entrada?' absent':''}">
-<span style="font-weight:600;font-size:11px">${r.w.nombre}<br>
-<span class="fich-badge-${r.estado}">${r.estadoLabel}</span>
-<span style="font-size:10px;color:var(--text2);margin-left:4px">${r.w.turno==='both'?'8:30–22:00':r.w.turno==='morning'?'8:30–14:00':'17:00–22:00'}</span>
-</span>
+<span style="font-weight:600;font-size:11px">${r.w.nombre}<br><span class="fich-badge-${r.estado}">${r.estadoLabel}</span></span>
 <span class="fich-time-cell${!r.entrada?' empty':''}">${r.entrada?r.entrada.hora.substring(0,5):'—'}</span>
-<span class="fich-time-cell fich-hide-sm${!r.pausaI?' empty':''}">${r.pausaI?r.pausaI.hora.substring(0,5):'—'}</span>
-<span class="fich-time-cell fich-hide-sm${!r.pausaF?' empty':''}">${r.pausaF?r.pausaF.hora.substring(0,5):'—'}</span>
+<span class="fich-time-cell fich-hide-sm${r.w.turno==='both'?(!r.salidaM?' empty':''):(!r.pausaI?' empty':'')}">${r.w.turno==='both'?(r.salidaM?r.salidaM.hora.substring(0,5):'—'):(r.pausaI?r.pausaI.hora.substring(0,5):'—')}</span>
+<span class="fich-time-cell fich-hide-sm${r.w.turno==='both'?(!r.entradaT?' empty':''):(!r.pausaF?' empty':'')}">${r.w.turno==='both'?(r.entradaT?r.entradaT.hora.substring(0,5):'—'):(r.pausaF?r.pausaF.hora.substring(0,5):'—')}</span>
 <span class="fich-time-cell${!r.salida?' empty':''}">${r.salida?r.salida.hora.substring(0,5):'—'}</span>
+<span class="fich-time-cell fich-hide-sm" style="font-size:10px;color:var(--text2)">${r.w.turno==='both'?'M/T':'pausa'}</span>
 <span class="fich-time-cell" style="color:var(--green);font-size:11px">${r.horas}</span>
 </div>`).join('') || '<div class="empty">Sin fichajes.</div>';
 const pins = document.getElementById('pinsList');
@@ -1972,12 +1988,105 @@ XLSX.writeFile(wb,'asistencia-'+date+'.xlsx');
 function exportHistorialPDF(){
 if(!historialData.length){alert('Busca el historial primero.');return;}
 const{jsPDF}=window.jspdf;
-const doc=new jsPDF();
+const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+const margin=14,pageW=210,contentW=pageW-margin*2;
 const desde=document.getElementById('histDesde')?.value;
 const hasta=document.getElementById('histHasta')?.value;
-doc.setFontSize(14);doc.text('Historial de fichajes · '+fmtFull(desde)+' - '+fmtFull(hasta),14,14);
-const body=historialData.map(r=>[new Date(r.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'}),r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'—',r.pausaI?r.pausaI.hora.substring(0,5):'—',r.pausaF?r.pausaF.hora.substring(0,5):'—',r.salida?r.salida.hora.substring(0,5):'—',r.horas]);
-doc.autoTable({head:[['Fecha','Trabajador','Entrada','Pausa','Vuelta','Salida','Horas']],body,startY:22,styles:{fontSize:9},headStyles:{fillColor:[24,95,165]}});
+
+// Group by worker
+const byWorker={};
+historialData.forEach(r=>{
+  const wid=r.w.id;
+  if(!byWorker[wid]) byWorker[wid]={w:r.w,rows:[]};
+  byWorker[wid].rows.push(r);
+});
+
+let firstPage=true;
+Object.values(byWorker).forEach(({w,rows})=>{
+  if(!firstPage) doc.addPage();
+  firstPage=false;
+
+  // Worker header
+  doc.setFillColor(24,95,165);doc.rect(margin,10,contentW,10,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(255);
+  doc.text(w.nombre,margin+3,17);
+  const sLabels={both:'Mañana y tarde',morning:'Solo manana',evening:'Solo tarde'};
+  doc.setFontSize(8);
+  doc.text(sLabels[w.turno]+' · '+w.horas+'h/sem · PIN: '+(w.pin||'—'),pageW-margin-3,17,{align:'right'});
+  doc.setTextColor(0);
+
+  // Period and stats
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text('Período: '+fmtFull(desde)+' al '+fmtFull(hasta),margin,26);
+  const totalDias=rows.length;
+  const diasConSalida=rows.filter(r=>r.salida).length;
+  const horasTotales=rows.reduce((s,r)=>{
+    if(!r.entrada)return s;
+    let m=0;
+    if(w.turno==='both'){
+      if(r.salidaM&&r.entrada) m+=timeToMins(r.salidaM.hora)-timeToMins(r.entrada.hora);
+      if(r.entradaT&&r.salida) m+=timeToMins(r.salida.hora)-timeToMins(r.entradaT.hora);
+    } else {
+      if(r.salida) m=timeToMins(r.salida.hora)-timeToMins(r.entrada.hora);
+      if(r.pausaI&&r.pausaF) m-=(timeToMins(r.pausaF.hora)-timeToMins(r.pausaI.hora));
+    }
+    return s+Math.max(0,m);
+  },0);
+  const hT=Math.floor(horasTotales/60),mT=horasTotales%60;
+  doc.text('Días registrados: '+totalDias+' · Completos: '+diasConSalida+' · Total horas: '+hT+'h '+mT+'m',margin,31);
+  doc.setTextColor(0);
+
+  // Table
+  const isBoth=w.turno==='both';
+  const head=isBoth
+    ?[['Fecha','Día','Ent.M','Sal.M','Ent.T','Sal.T','H.Total']]
+    :[['Fecha','Día','Entrada','Pausa ini.','Pausa fin','Salida','H.Total']];
+
+  const body=rows.map(r=>{
+    const dt=new Date(r.fecha+'T12:00:00');
+    const fLabel=dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const dLabel=DAYS[dt.getDay()];
+    if(isBoth) return[fLabel,dLabel,
+      r.entrada?r.entrada.hora.substring(0,5):'—',
+      r.salidaM?r.salidaM.hora.substring(0,5):'—',
+      r.entradaT?r.entradaT.hora.substring(0,5):'—',
+      r.salida?r.salida.hora.substring(0,5):'—',
+      r.horas];
+    return[fLabel,dLabel,
+      r.entrada?r.entrada.hora.substring(0,5):'—',
+      r.pausaI?r.pausaI.hora.substring(0,5):'—',
+      r.pausaF?r.pausaF.hora.substring(0,5):'—',
+      r.salida?r.salida.hora.substring(0,5):'—',
+      r.horas];
+  });
+
+  doc.autoTable({
+    head,body,startY:35,
+    styles:{fontSize:8,cellPadding:2},
+    headStyles:{fillColor:[24,95,165]},
+    alternateRowStyles:{fillColor:[247,247,245]},
+    columnStyles:{0:{cellWidth:20},1:{cellWidth:12},6:{fontStyle:'bold'}},
+    margin:{left:margin,right:margin},
+    didDrawCell:(data)=>{
+      // Mark days without exit in light red
+      if(data.section==='body'&&data.column.index===6&&data.cell.raw==='—'){
+        doc.setFillColor(252,235,235);
+        doc.rect(data.cell.x,data.cell.y,data.cell.width,data.cell.height,'F');
+        doc.setTextColor(163,45,45);doc.setFontSize(8);
+        doc.text('—',data.cell.x+data.cell.width/2,data.cell.y+data.cell.height/2+1,{align:'center'});
+        doc.setTextColor(0);
+      }
+    }
+  });
+
+  // Total footer
+  const finalY=doc.lastAutoTable.finalY+6;
+  doc.setFillColor(230,241,251);doc.rect(margin,finalY,contentW,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(12,68,124);
+  doc.text('TOTAL: '+hT+'h '+mT+'m en '+totalDias+' días ('+diasConSalida+' completos)',margin+3,finalY+5.5);
+  doc.setTextColor(0);
+});
+
 doc.save('historial-fichajes-'+desde+'-'+hasta+'.pdf');
 }
 function exportHistorialXLS(){
@@ -1985,7 +2094,13 @@ if(!historialData.length){alert('Busca el historial primero.');return;}
 const desde=document.getElementById('histDesde')?.value;
 const hasta=document.getElementById('histHasta')?.value;
 const ws_data=[['Historial de fichajes','De '+fmtFull(desde)+' a '+fmtFull(hasta)],['Fecha','Trabajador','Entrada','Pausa inicio','Pausa fin','Salida','Horas trabajadas']];
-historialData.forEach(r=>{ws_data.push([r.fecha,r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'',r.pausaI?r.pausaI.hora.substring(0,5):'',r.pausaF?r.pausaF.hora.substring(0,5):'',r.salida?r.salida.hora.substring(0,5):'',r.horas]);});
+historialData.forEach(r=>{
+  if(r.w.turno==='both'){
+    ws_data.push([r.fecha,r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'',r.salidaM?r.salidaM.hora.substring(0,5):'',r.entradaT?r.entradaT.hora.substring(0,5):'',r.salida?r.salida.hora.substring(0,5):'',r.horas]);
+  } else {
+    ws_data.push([r.fecha,r.w.nombre,r.entrada?r.entrada.hora.substring(0,5):'',r.pausaI?r.pausaI.hora.substring(0,5):'',r.pausaF?r.pausaF.hora.substring(0,5):'',r.salida?r.salida.hora.substring(0,5):'',r.horas]);
+  }
+});
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws_data),'Historial');
 XLSX.writeFile(wb,'historial-fichajes-'+desde+'-'+hasta+'.xlsx');
@@ -2572,6 +2687,186 @@ function exportWorkersPDF(){
   });
 
   doc.save('trabajadores-'+isoDate(new Date())+'.pdf');
+}
+
+
+// ══ INFORME COMPLETO FICHAJES MES A MES ═══════════════════════
+async function exportInformeFichajesPDF(){
+  const btn=document.querySelector('[onclick="exportInformeFichajesPDF()"]');
+  if(btn){btn.disabled=true;btn.textContent='Generando...';}
+
+  // Load ALL fichajes
+  const{data:allFichs,error}=await sb.from('fichajes')
+    .select('*')
+    .order('trabajador_id')
+    .order('fecha')
+    .order('creado_en');
+
+  if(error||!allFichs||!allFichs.length){
+    alert('No hay fichajes registrados.');
+    if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}
+    return;
+  }
+
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const margin=14,pageW=210,contentW=pageW-margin*2;
+
+  // Cover page
+  doc.setFillColor(24,95,165);doc.rect(0,0,pageW,60,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255);
+  doc.text('Porxada Iberics',pageW/2,25,{align:'center'});
+  doc.setFontSize(16);doc.text('Informe de Fichajes · Mes a mes',pageW/2,38,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(200,220,255);
+  doc.text('Generado el '+new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),pageW/2,50,{align:'center'});
+  doc.setTextColor(0);
+
+  // Summary table (all workers)
+  let y=70;
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(26,26,26);
+  doc.text('Resumen por trabajador',margin,y);y+=6;
+
+  const workerSummary=workers.map(w=>{
+    const wf=allFichs.filter(f=>f.trabajador_id===w.id);
+    const dias=new Set(wf.map(f=>f.fecha)).size;
+    const meses=new Set(wf.map(f=>f.fecha.substring(0,7))).size;
+    return[w.nombre,dias+' días',meses+' meses',w.horas+'h/sem'];
+  });
+
+  doc.autoTable({
+    head:[['Trabajador','Días fichados','Meses','Contrato']],
+    body:workerSummary,startY:y,
+    styles:{fontSize:9,cellPadding:2},
+    headStyles:{fillColor:[24,95,165]},
+    margin:{left:margin,right:margin}
+  });
+  y=doc.lastAutoTable.finalY+12;
+
+  // Per worker, per month detail
+  workers.forEach(w=>{
+    const wf=allFichs.filter(f=>f.trabajador_id===w.id);
+    if(!wf.length) return;
+
+    doc.addPage();
+    y=14;
+
+    // Worker header
+    doc.setFillColor(24,95,165);doc.rect(margin,y,contentW,10,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255);
+    doc.text(w.nombre,margin+4,y+7);
+    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+    const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+    const horLabel=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+    doc.setFontSize(9);doc.setTextColor(200,220,255);
+    doc.text(horLabel+' · '+w.horas+'h/sem · Libre: '+DAYNAMES[w.dia_libre],pageW-margin-4,y+7,{align:'right'});
+    doc.setTextColor(0);
+    y+=14;
+
+    // Group by month
+    const byMonth={};
+    wf.forEach(f=>{
+      const ym=f.fecha.substring(0,7);
+      if(!byMonth[ym])byMonth[ym]=[];
+      byMonth[ym].push(f);
+    });
+
+    Object.entries(byMonth).sort().forEach(([ym,mFichs])=>{
+      const[yr,mo]=ym.split('-');
+      const monthLabel=MONTHS[parseInt(mo)-1]+' '+yr;
+
+      // Group by day within month
+      const byDay={};
+      mFichs.forEach(f=>{if(!byDay[f.fecha])byDay[f.fecha]=[];byDay[f.fecha].push(f);});
+
+      // Calculate monthly totals
+      let totalMins=0,diasTrabajados=0;
+      const rows=Object.entries(byDay).sort().map(([fecha,dayFichs])=>{
+        const sorted=dayFichs.sort((a,b)=>a.creado_en.localeCompare(b.creado_en));
+        const entradas=sorted.filter(f=>f.tipo==='entrada');
+        const salidas=sorted.filter(f=>f.tipo==='salida');
+        const pausaI=sorted.find(f=>f.tipo==='pausa_inicio');
+        const pausaF=sorted.find(f=>f.tipo==='pausa_fin');
+
+        let mins=0;
+        if(w.turno==='both'){
+          if(entradas[0]&&salidas[0]) mins+=timeToMins(salidas[0].hora)-timeToMins(entradas[0].hora);
+          if(entradas[1]&&salidas[1]) mins+=timeToMins(salidas[1].hora)-timeToMins(entradas[1].hora);
+        } else {
+          if(entradas[0]&&salidas[0]){
+            mins=timeToMins(salidas[0].hora)-timeToMins(entradas[0].hora);
+            if(pausaI&&pausaF) mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));
+          }
+        }
+        if(mins>0){totalMins+=mins;diasTrabajados++;}
+        const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
+        const dt=new Date(fecha+'T12:00:00');
+        const dLabel=dt.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
+
+        if(w.turno==='both'){
+          return[dLabel,
+            entradas[0]?entradas[0].hora.substring(0,5):'—',
+            salidas[0]?salidas[0].hora.substring(0,5):'—',
+            entradas[1]?entradas[1].hora.substring(0,5):'—',
+            salidas[1]?salidas[1].hora.substring(0,5):'—',
+            horasStr
+          ];
+        } else {
+          return[dLabel,
+            entradas[0]?entradas[0].hora.substring(0,5):'—',
+            pausaI?pausaI.hora.substring(0,5):'—',
+            pausaF?pausaF.hora.substring(0,5):'—',
+            salidas[0]?salidas[0].hora.substring(0,5):'—',
+            horasStr
+          ];
+        }
+      });
+
+      const totalH=Math.floor(totalMins/60),totalM=totalMins%60;
+      const objetivo=Math.round(w.horas*4.33);
+      const totalHStr=totalH+'h '+totalM+'m';
+
+      // Check page space
+      if(y+rows.length*6+20>285){doc.addPage();y=14;
+        doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
+        doc.text(w.nombre+' (continuacion)',margin+4,y+5.5);doc.setTextColor(0);
+        y+=12;
+      }
+
+      // Month header
+      doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,7,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(24,95,165);
+      doc.text(monthLabel,margin+4,y+5);
+      doc.setFontSize(9);doc.setTextColor(60);
+      doc.text(diasTrabajados+' dias · '+totalHStr+' / objetivo ~'+objetivo+'h',pageW-margin-4,y+5,{align:'right'});
+      doc.setTextColor(0);
+      y+=9;
+
+      const head=w.turno==='both'
+        ?[['Fecha','Ent.M','Sal.M','Ent.T','Sal.T','Horas']]
+        :[['Fecha','Entrada','P.Inicio','P.Fin','Salida','Horas']];
+
+      doc.autoTable({
+        head,body:rows,startY:y,
+        styles:{fontSize:8,cellPadding:1.5},
+        headStyles:{fillColor:[200,215,240],textColor:[24,95,165],fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:20},5:{cellWidth:16,halign:'right'}},
+        margin:{left:margin,right:margin},
+        didDrawPage:(d)=>{y=d.cursor.y+4;}
+      });
+      y=doc.lastAutoTable.finalY+4;
+
+      // Month summary row
+      doc.setFillColor(240,242,246);doc.rect(margin,y,contentW,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(26,26,26);
+      doc.text('Total '+monthLabel+': '+totalHStr+' en '+diasTrabajados+' dias trabajados',margin+4,y+4);
+      doc.setTextColor(0);
+      y+=10;
+    });
+  });
+
+  if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}
+  doc.save('informe-fichajes-completo-'+isoDate(new Date())+'.pdf');
 }
 
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
