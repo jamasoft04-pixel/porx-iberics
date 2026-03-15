@@ -1670,14 +1670,14 @@ const res2 = await sb.from('fichajes').select('tipo').eq('trabajador_id', wData.
 const ultimo = res2.data ? res2.data.tipo : null;
 if(!ultimo) return 'entrada';
 if(wData.turno === 'both'){
-  // Doble turno: entrada → salida → entrada → salida
-  const res3 = await sb.from('fichajes').select('tipo').eq('trabajador_id', wData.id).eq('fecha', hoy).eq('tipo','entrada').select();
-  const numEntradas = res3.data ? res3.data.length : 0;
-  if(ultimo === 'salida' && numEntradas < 2) return 'entrada';
-  if(ultimo === 'salida' && numEntradas >= 2) return 'entrada'; // reset next day
-  if(ultimo === 'entrada') return 'pausa_inicio';
-  if(ultimo === 'pausa_inicio') return 'pausa_fin';
-  if(ultimo === 'pausa_fin') return 'salida';
+  // Doble turno: entrada → salida → entrada → salida (sin pausas)
+  if(ultimo === 'entrada') return 'salida';
+  if(ultimo === 'salida'){
+    const res3 = await sb.from('fichajes').select('id').eq('trabajador_id', wData.id).eq('fecha', hoy).eq('tipo','salida').select();
+    const numSalidas = res3.data ? res3.data.length : 0;
+    if(numSalidas < 2) return 'entrada'; // segunda entrada (turno tarde)
+    return 'entrada'; // nuevo dia
+  }
   return 'entrada';
 } else {
   if(ultimo === 'salida') return 'entrada';
