@@ -2544,11 +2544,18 @@ function getRango(panelId){
   const hasta=document.getElementById('rango-hasta-'+panelId)?.value;
   if(!desde||!hasta){alert('Selecciona las fechas Desde y Hasta.');return null;}
   if(desde>hasta){alert('La fecha Desde debe ser anterior a Hasta.');return null;}
+  // Extend to full weeks Mon-Sun
+  let start=parseDate(desde);
+  let end=parseDate(hasta);
+  const startDow=start.getDay();
+  if(startDow!==1) start.setDate(start.getDate()-(startDow===0?6:startDow-1));
+  const endDow=end.getDay();
+  if(endDow!==0) end.setDate(end.getDate()+(7-endDow));
   const dates=[];
-  let d=parseDate(desde);
-  const end=parseDate(hasta);
+  let d=new Date(start);
   while(d<=end){dates.push(new Date(d));d.setDate(d.getDate()+1);}
-  return{desde,hasta,dates};
+  if(dates.length>63){alert('El rango máximo es 9 semanas. Reduce el período.');return null;}
+  return{desde:isoDate(start),hasta:isoDate(end),desdeOrig:desde,hastaOrig:hasta,dates};
 }
 
 function printRango(panelId){
@@ -2586,7 +2593,7 @@ function exportRangoPDF(panelId){
   doc.setFont('helvetica','bold');doc.setFontSize(14);
   doc.text('Porxada Iberics · '+title,margin,12);
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
-  doc.text('Del '+fmtFull(desde)+' al '+fmtFull(hasta),margin,18);
+  doc.text('Del '+fmtFull(rango.desdeOrig||desde)+' al '+fmtFull(rango.hastaOrig||hasta)+' (semanas completas L-D)',margin,18);
   doc.setTextColor(0);
 
   // For tienda/schedule: render day by day visual
