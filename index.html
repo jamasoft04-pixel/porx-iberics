@@ -590,11 +590,23 @@ tr:last-child td{border-bottom:none}
         <div id="vacAlert"></div>
         <div class="form-actions"><span id="vacSpin" style="display:none" class="loading"><span class="spinner"></span></span><button class="btn btn-primary" onclick="addVacacion()">Añadir vacaciones</button></div>
       </div>
+      <div class="card" id="vacGeneralesCard" style="display:none">
+        <div class="stitle">Períodos generales registrados</div>
+        <div id="vacGeneralesList"></div>
+      </div>
       <div class="card">
         <div class="stitle">Resumen de vacaciones por año</div>
-        <div class="filter-row">
-          <select id="vacResWorker" onchange="renderVacaciones()"><option value="all">Todos</option></select>
-          <select id="vacResAnio" onchange="renderVacaciones()"><option value="2025">2025</option><option value="2026" selected>2026</option></select>
+        <div class="filter-row" style="justify-content:space-between">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="vacResWorker" onchange="renderVacaciones()"><option value="all">Todos</option></select>
+            <select id="vacResAnio" onchange="renderVacaciones()"><option value="2025">2025</option><option value="2026" selected>2026</option></select>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center" id="vacDeleteAllBar" style="display:none">
+            <span style="font-size:12px;color:var(--text2)">Eliminar período para todos:</span>
+            <input type="date" id="vacDelDesde" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+            <input type="date" id="vacDelHasta" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+            <button class="btn btn-sm btn-danger" onclick="deleteVacTodos()">Eliminar para todos</button>
+          </div>
         </div>
         <div id="vacResumen"></div>
       </div>
@@ -872,7 +884,7 @@ renderCalendar(); renderVacaciones(); renderSummary();
 updateAllSelects(); populateSumMonth();
 if(isAdmin()){renderUsuarios();loadAudit();loadFichajes();}
 }
-function isoDate(d){return d.toISOString().split('T')[0];}
+function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function parseDate(s){if(!s)return null;const[y,m,d]=s.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setHours(0,0,0,0);return dt;}
 function fmtDate(d){return d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});}
 function fmtFull(s){if(!s)return '—';const p=s.split('-');return`${p[2]}/${p[1]}/${p[0]}`;}
@@ -1083,6 +1095,73 @@ else{al.innerHTML=`<div class="alert alert-s">${added===1?'Vacaciones guardadas.
 document.getElementById('vacStart').value='';document.getElementById('vacEnd').value='';
 renderVacaciones();renderCalendar();renderSchedule();
 }
+
+
+function renderVacGenerales(){
+  const card=document.getElementById('vacGeneralesCard');
+  const el=document.getElementById('vacGeneralesList');
+  if(!card||!el||!isAdmin())return;
+
+  // Find unique periods that appear in ALL or multiple workers
+  const periodos={};
+  vacaciones.forEach(v=>{
+    const key=v.vacaciones_inicio+'|'+v.vacaciones_fin;
+    if(!periodos[key]) periodos[key]={inicio:v.vacaciones_inicio,fin:v.vacaciones_fin,motivo:v.motivo,workers:[],ids:[]};
+    const w=workers.find(ww=>ww.id===v.trabajador_id);
+    if(w) periodos[key].workers.push(w.nombre);
+    periodos[key].ids.push(v.id);
+  });
+
+  const periodosArr=Object.values(periodos).filter(p=>p.workers.length>1).sort((a,b)=>a.inicio.localeCompare(b.inicio));
+
+  if(!periodosArr.length){card.style.display='none';return;}
+  card.style.display='block';
+
+  el.innerHTML=periodosArr.map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <span style="font-weight:600;font-size:13px">${fmtFull(p.inicio)} → ${fmtFull(p.fin)}</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:8px">${daysBetween(p.inicio,p.fin)} días · ${p.motivo||'Vacaciones'}</span>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.workers.join(', ')}</div>
+      </div>
+      <span class="badge badge-vac">${p.workers.length} trabajadores</span>
+      <button class="btn btn-sm btn-danger" onclick="deleteVacPeriodo('${p.inicio}','${p.fin}')">Eliminar para todos</button>
+    </div>`).join('');
+}
+
+async function deleteVacPeriodo(desde,hasta){
+  if(!isAdmin()||!confirm('Eliminar vacaciones del '+fmtFull(desde)+' al '+fmtFull(hasta)+' para todos los trabajadores?'))return;
+  const toDelete=vacaciones.filter(v=>v.vacaciones_inicio===desde&&v.vacaciones_fin===hasta);
+  if(!toDelete.length){alert('No se encontraron vacaciones con esas fechas.');return;}
+  let deleted=0;
+  for(const v of toDelete){
+    const{error}=await sb.from('vacaciones').delete().eq('id',v.id);
+    if(!error) deleted++;
+  }
+  vacaciones=vacaciones.filter(v=>!(v.vacaciones_inicio===desde&&v.vacaciones_fin===hasta));
+  renderVacaciones();renderCalendar();renderSchedule();
+  alert(deleted+' períodos eliminados.');
+}
+
+async function deleteVacTodos(){
+  if(!isAdmin())return;
+  const desde=document.getElementById('vacDelDesde')?.value;
+  const hasta=document.getElementById('vacDelHasta')?.value;
+  if(!desde||!hasta){alert('Indica las fechas del período que quieres eliminar.');return;}
+  if(!confirm(`Eliminar vacaciones del ${fmtFull(desde)} al ${fmtFull(hasta)} para TODOS los trabajadores?`))return;
+  // Find matching vacaciones
+  const toDelete=vacaciones.filter(v=>v.vacaciones_inicio===desde&&v.vacaciones_fin===hasta);
+  if(!toDelete.length){alert('No se encontraron vacaciones con esas fechas exactas para ningún trabajador.');return;}
+  let deleted=0,errors=0;
+  for(const v of toDelete){
+    const{error}=await sb.from('vacaciones').delete().eq('id',v.id);
+    if(error)errors++;else deleted++;
+  }
+  vacaciones=vacaciones.filter(v=>!(v.vacaciones_inicio===desde&&v.vacaciones_fin===hasta));
+  alert(deleted+' períodos eliminados.'+(errors?' '+errors+' errores.':''));
+  renderVacaciones();renderCalendar();renderSchedule();
+}
+
 async function deleteVac(id){
 if(!isAdmin()||!confirm('¿Eliminar este período de vacaciones?'))return;
 await sb.from('vacaciones').delete().eq('id',id);
@@ -1317,6 +1396,9 @@ grid.innerHTML=html;
 }
 function renderVacaciones(){
 const wid=document.getElementById('vacResWorker').value;
+const bar=document.getElementById('vacDeleteAllBar');
+if(bar) bar.style.display=(isAdmin()&&wid==='all')?'flex':'none';
+renderVacGenerales();
 const anio=parseInt(document.getElementById('vacResAnio').value);
 const el=document.getElementById('vacResumen');
 const sel=workers.filter(w=>wid==='all'||String(w.id)===String(wid));
