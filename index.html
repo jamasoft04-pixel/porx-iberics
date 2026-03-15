@@ -3136,21 +3136,51 @@ async function exportInformeFichajesPDF(){
       doc.setTextColor(0);
       y+=9;
 
-      const head=w.turno==='both'
-        ?[['Fecha','Ent.M','Sal.M','Ent.T','Sal.T','Horas']]
-        :[['Fecha','Entrada','P.Inicio','P.Fin','Salida','Horas']];
+      // Draw table manually - no autoTable limit issues
+      const colW=w.turno==='both'?[22,22,22,22,22,18]:[22,22,22,22,22,18];
+      const totalColW=colW.reduce((s,c)=>s+c,0);
+      const heads=w.turno==='both'?['Fecha','Ent.M','Sal.M','Ent.T','Sal.T','Horas']:['Fecha','Entrada','P.Ini','P.Fin','Salida','Horas'];
+      const rowH2=5.5;
 
-      doc.autoTable({
-        head,body:rows,startY:y,
-        styles:{fontSize:8,cellPadding:1.5},
-        headStyles:{fillColor:[200,215,240],textColor:[24,95,165],fontStyle:'bold'},
-        columnStyles:{0:{cellWidth:20},5:{cellWidth:16,halign:'right'}},
-        margin:{left:margin,right:margin},
-        showHead:'everyPage',
-        didDrawPage:(data)=>{ y=data.cursor.y; }
+      // Check space for header
+      if(y+rowH2*2>282){doc.addPage();y=14;
+        doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
+        doc.text(w.nombre+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);y+=12;}
+
+      // Table header
+      doc.setFillColor(200,215,240);doc.rect(margin,y,totalColW,rowH2,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(24,95,165);
+      let cx=margin;
+      heads.forEach((h2,i)=>{doc.text(h2,cx+1,y+3.8);cx+=colW[i];});
+      doc.setTextColor(0);
+      y+=rowH2;
+
+      // Table rows
+      rows.forEach((row,ri)=>{
+        if(y+rowH2>282){
+          doc.addPage();y=14;
+          doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
+          doc.text(w.nombre+' — '+monthLabel+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);y+=12;
+          // Redraw header
+          doc.setFillColor(200,215,240);doc.rect(margin,y,totalColW,rowH2,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(24,95,165);
+          cx=margin;heads.forEach((h2,i)=>{doc.text(h2,cx+1,y+3.8);cx+=colW[i];});
+          doc.setTextColor(0);y+=rowH2;
+        }
+        if(ri%2===0){doc.setFillColor(248,249,252);doc.rect(margin,y,totalColW,rowH2,'F');}
+        doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,26,26);
+        cx=margin;
+        row.forEach((cell,i)=>{
+          const txt=String(cell||'—');
+          doc.text(txt.length>10?txt.substring(0,9)+'…':txt,cx+1,y+3.8);
+          cx+=colW[i];
+        });
+        doc.setDrawColor(220);doc.setLineWidth(0.1);doc.line(margin,y+rowH2,margin+totalColW,y+rowH2);
+        y+=rowH2;
       });
-      y=doc.lastAutoTable.finalY+4;
-      // If after autoTable we're near page bottom, add new page
+      y+=2;
       if(y>270){doc.addPage();y=14;}
 
       // Month summary row
