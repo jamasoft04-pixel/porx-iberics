@@ -2979,11 +2979,18 @@ async function exportInformeFichajesPDF(){
   if(btn){btn.disabled=true;btn.textContent='Generando...';}
 
   // Load ALL fichajes
-  const{data:allFichs,error}=await sb.from('fichajes')
-    .select('*')
-    .order('trabajador_id')
-    .order('fecha')
-    .order('creado_en');
+  // Load all fichajes in batches to bypass Supabase 1000-row limit
+  let allFichs=[], page=0, pageSize=1000, done=false;
+  while(!done){
+    const{data,error:err}=await sb.from('fichajes')
+      .select('*')
+      .order('trabajador_id').order('fecha').order('hora')
+      .range(page*pageSize,(page+1)*pageSize-1);
+    if(err){alert('Error cargando fichajes: '+err.message);if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}return;}
+    if(data&&data.length>0){allFichs=allFichs.concat(data);page++;}
+    if(!data||data.length<pageSize) done=true;
+  }
+  const error=null;
 
   if(error||!allFichs||!allFichs.length){
     alert('No hay fichajes registrados.');
@@ -3111,11 +3118,12 @@ async function exportInformeFichajesPDF(){
       const objetivo=Math.round(w.horas*4.33);
       const totalHStr=totalH+'h '+totalM+'m';
 
-      // Check page space
-      if(y+rows.length*6+20>285){doc.addPage();y=14;
+      // Check page space - always ensure we have room for header at least
+      if(y+30>285){
+        doc.addPage();y=14;
         doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
         doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
-        doc.text(w.nombre+' (continuacion)',margin+4,y+5.5);doc.setTextColor(0);
+        doc.text(w.nombre+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);
         y+=12;
       }
 
@@ -3138,9 +3146,12 @@ async function exportInformeFichajesPDF(){
         headStyles:{fillColor:[200,215,240],textColor:[24,95,165],fontStyle:'bold'},
         columnStyles:{0:{cellWidth:20},5:{cellWidth:16,halign:'right'}},
         margin:{left:margin,right:margin},
-        didDrawPage:(d)=>{y=d.cursor.y+4;}
+        showHead:'everyPage',
+        didDrawPage:(data)=>{ y=data.cursor.y; }
       });
       y=doc.lastAutoTable.finalY+4;
+      // If after autoTable we're near page bottom, add new page
+      if(y>270){doc.addPage();y=14;}
 
       // Month summary row
       doc.setFillColor(240,242,246);doc.rect(margin,y,contentW,6,'F');
