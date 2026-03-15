@@ -2783,40 +2783,43 @@ async function exportInformeFichajesPDF(){
       let totalMins=0,diasTrabajados=0;
       const rows=Object.entries(byDay).sort().map(([fecha,dayFichs])=>{
         const sorted=dayFichs.sort((a,b)=>a.hora.localeCompare(b.hora));
-        const entradas=sorted.filter(f=>f.tipo==='entrada');
-        const salidas=sorted.filter(f=>f.tipo==='salida');
         const pausaI=sorted.find(f=>f.tipo==='pausa_inicio');
         const pausaF=sorted.find(f=>f.tipo==='pausa_fin');
-
-        let mins=0;
-        if(w.turno==='both'){
-          if(entradas[0]&&salidas[0]) mins+=timeToMins(salidas[0].hora)-timeToMins(entradas[0].hora);
-          if(entradas[1]&&salidas[1]) mins+=timeToMins(salidas[1].hora)-timeToMins(entradas[1].hora);
-        } else {
-          if(entradas[0]&&salidas[0]){
-            mins=timeToMins(salidas[0].hora)-timeToMins(entradas[0].hora);
-            if(pausaI&&pausaF) mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));
-          }
-        }
-        if(mins>0){totalMins+=mins;diasTrabajados++;}
-        const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
         const dt=new Date(fecha+'T12:00:00');
         const dLabel=dt.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
+        let mins=0;
 
         if(w.turno==='both'){
+          // Assign by time order: entry1 < exit1 < entry2 < exit2
+          const entradaM=sorted.find(f=>f.tipo==='entrada')||null;
+          const salidaM=entradaM?sorted.find(f=>f.tipo==='salida'&&f.hora>entradaM.hora)||null:null;
+          const entradaT=salidaM?sorted.find(f=>f.tipo==='entrada'&&f.hora>salidaM.hora)||null:null;
+          const salidaT=entradaT?sorted.find(f=>f.tipo==='salida'&&f.hora>entradaT.hora)||null:null;
+          if(entradaM&&salidaM) mins+=timeToMins(salidaM.hora)-timeToMins(entradaM.hora);
+          if(entradaT&&salidaT) mins+=timeToMins(salidaT.hora)-timeToMins(entradaT.hora);
+          if(mins>0){totalMins+=mins;diasTrabajados++;}
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
           return[dLabel,
-            entradas[0]?entradas[0].hora.substring(0,5):'—',
-            salidas[0]?salidas[0].hora.substring(0,5):'—',
-            entradas[1]?entradas[1].hora.substring(0,5):'—',
-            salidas[1]?salidas[1].hora.substring(0,5):'—',
+            entradaM?entradaM.hora.substring(0,5):'—',
+            salidaM?salidaM.hora.substring(0,5):'—',
+            entradaT?entradaT.hora.substring(0,5):'—',
+            salidaT?salidaT.hora.substring(0,5):'—',
             horasStr
           ];
         } else {
+          const entrada=sorted.find(f=>f.tipo==='entrada')||null;
+          const salida=sorted.find(f=>f.tipo==='salida')||null;
+          if(entrada&&salida){
+            mins=timeToMins(salida.hora)-timeToMins(entrada.hora);
+            if(pausaI&&pausaF) mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));
+          }
+          if(mins>0){totalMins+=mins;diasTrabajados++;}
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—';
           return[dLabel,
-            entradas[0]?entradas[0].hora.substring(0,5):'—',
+            entrada?entrada.hora.substring(0,5):'—',
             pausaI?pausaI.hora.substring(0,5):'—',
             pausaF?pausaF.hora.substring(0,5):'—',
-            salidas[0]?salidas[0].hora.substring(0,5):'—',
+            salida?salida.hora.substring(0,5):'—',
             horasStr
           ];
         }
