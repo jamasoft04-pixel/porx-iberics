@@ -817,7 +817,7 @@ const FESTIVOS_FIJOS={
 '2026-12-25':'Navidad','2026-12-26':'Sant Esteve'
 };
 let sb=null, currentUser=null, currentRol=null;
-let workers=[], bajas=[], vacaciones=[], customFestivos=[], usuarios=[];
+let workers=[], bajas=[], vacaciones=[], customFestivos=[], festivosDesactivados=[], usuarios=[];
 let weekOffset=0, calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let deferredInstall=null;
 if('serviceWorker' in navigator){
@@ -913,11 +913,12 @@ const p=[
 sb.from('trabajadores').select('*').order('creado_en'),
 sb.from('bajas').select('*').order('baja_inicio'),
 sb.from('vacaciones').select('*').order('vacaciones_inicio'),
-sb.from('festivos').select('*').order('fecha')
+sb.from('festivos').select('*').order('fecha'),
+    sb.from('festivos_desactivados').select('*')
 ];
 if(isAdmin()) p.push(sb.from('usuarios').select('*').order('creado_en'));
 const r=await Promise.all(p);
-workers=r[0].data||[]; bajas=r[1].data||[]; vacaciones=r[2].data||[]; customFestivos=r[3].data||[];
+workers=r[0].data||[]; bajas=r[1].data||[]; vacaciones=r[2].data||[]; customFestivos=r[3].data||[]; festivosDesactivados=r[4].data||[];
 if(isAdmin()) usuarios=r[4]?.data||[];
 // Assign PINs to workers that don't have one
 const workersNeedingPin = workers.filter(w=>!w.pin);
@@ -944,7 +945,7 @@ function fmtFull(s){if(!s)return '—';const p=s.split('-');return`${p[2]}/${p[1
 function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();}
 function setLoad(sid,bid,on){const s=document.getElementById(sid);if(s)s.style.display=on?'flex':'none';if(bid){const b=document.getElementById(bid);if(b)b.disabled=on;}}
 function allFestivos(){const f={...FESTIVOS_FIJOS};customFestivos.forEach(c=>{f[c.fecha]=c.descripcion;});return f;}
-function isFestivo(ds){return !!allFestivos()[ds];}
+function isFestivo(ds){return !!allFestivos()[ds] && !festivosDesactivados.some(f=>f.fecha===ds);}
 function workerBajas(wid){return bajas.filter(b=>b.trabajador_id===wid).sort((a,b)=>a.baja_inicio.localeCompare(b.baja_inicio));}
 function workerVacs(wid){return vacaciones.filter(v=>v.trabajador_id===wid).sort((a,b)=>a.vacaciones_inicio.localeCompare(b.vacaciones_inicio));}
 function isOnBaja(w,date){
@@ -1222,7 +1223,12 @@ vacaciones=vacaciones.filter(v=>v.id!==id);renderVacaciones();renderCalendar();r
 }
 function renderFestivos(){
   const fijos=document.getElementById('festivosFijos');
-  if(fijos) fijos.innerHTML=Object.entries(FESTIVOS_FIJOS).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>{const p=d.split('-');return`<span class="fest-tag">${p[2]}/${p[1]}/${p[0]} · ${n}</span>`;}).join('');
+  if(fijos) fijos.innerHTML=Object.entries(FESTIVOS_FIJOS).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>{
+    const p=d.split('-');
+    const disabled=festivosDesactivados.some(f=>f.fecha===d);
+    const adminBtn=isAdmin()?`<span onclick="${disabled?'reactivarFestivo':'desactivarFestivo'}('${d}')" style="cursor:pointer;font-size:11px;margin-left:4px;color:${disabled?'var(--green)':'var(--red)'};font-weight:700">${disabled?'Activar':'Ocultar'}</span>`:'';
+    return`<span class="fest-tag" style="${disabled?'opacity:.4;text-decoration:line-through':''}">${p[2]}/${p[1]}/${p[0]} · ${n}${adminBtn}</span>`;
+  }).join('');
 
   const customEl=document.getElementById('festivosCustomList');
   if(!customEl) return;
@@ -1282,6 +1288,21 @@ async function saveFestivo(id){
   if(i>=0) customFestivos[i]=data;
   cancelEditFestivo();
   renderCalendar();renderSchedule();
+}
+
+async function desactivarFestivo(fecha){
+  if(!isAdmin())return;
+  const{data,error}=await sb.from('festivos_desactivados').insert({fecha}).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  festivosDesactivados.push(data);
+  renderFestivos();renderCalendar();renderSchedule();renderWorkers();
+}
+async function reactivarFestivo(fecha){
+  if(!isAdmin())return;
+  const{error}=await sb.from('festivos_desactivados').delete().eq('fecha',fecha);
+  if(error){alert('Error: '+error.message);return;}
+  festivosDesactivados=festivosDesactivados.filter(f=>f.fecha!==fecha);
+  renderFestivos();renderCalendar();renderSchedule();renderWorkers();
 }
 async function addFestivo(){
 if(!isAdmin())return;
