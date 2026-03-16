@@ -426,7 +426,9 @@ tr:last-child td{border-bottom:none}
         </div>
         <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-sm btn-warn" onclick="generarFichajesEjemplo()" id="btnGenFichajes">Generar fichajes de ejemplo</button>
-          <button class="btn btn-blue" onclick="exportInformeFichajesPDF()" style="font-size:13px;padding:7px 16px">&#128196; Informe completo mes a mes (PDF)</button>
+          <button class="btn btn-blue" onclick="exportInformeFichajesPDF()" style="font-size:13px;padding:7px 16px">&#128196; Informe mes a mes (PDF)</button>
+          <button class="btn btn-blue" onclick="exportInformeXLS()" style="font-size:13px;padding:7px 16px;background:#1e7e34;border-color:#1e7e34">&#128202; Informe mes a mes (Excel)</button>
+          <button class="btn btn-blue" onclick="generarWordRegistros()" style="font-size:13px;padding:7px 16px;background:#7B2FBE;border-color:#7B2FBE">&#128196; Registro jornada (Word)</button>
           <span id="genFichajesMsg" style="font-size:12px;color:var(--text2)"></span>
         </div>
         <div id="historialList"></div>
@@ -1077,7 +1079,8 @@ const emVal=document.getElementById('ed-em-'+id)?.value||'08:30';
 const smVal=document.getElementById('ed-sm-'+id)?.value||'14:00';
 const etVal=document.getElementById('ed-et-'+id)?.value||'17:00';
 const stVal=document.getElementById('ed-st-'+id)?.value||'22:00';
-const updateData={nombre:name,horas:hours,turno:shift,dia_libre:parseInt(dayEl.value),inicio:start,fin:end,entrada_m:emVal,salida_m:smVal,entrada_t:etVal,salida_t:stVal};
+const docVal=document.getElementById('ed-doc-'+id)?.value.trim()||null;
+const updateData={nombre:name,horas:hours,turno:shift,dia_libre:parseInt(dayEl.value),inicio:start,fin:end,entrada_m:emVal,salida_m:smVal,entrada_t:etVal,salida_t:stVal,documento:docVal};
 if(pinVal) updateData.pin=pinVal;
 const {data,error} = await sb.from('trabajadores').update(updateData).eq('id', id).select().single();
 if(error){ al.innerHTML='<div class="alert alert-e">'+error.message+'</div>'; return; }
@@ -1378,6 +1381,7 @@ ${isAdmin()?`<div class="detail-panel" id="dp-edit-${w.id}">
 <div class="fg"><label>Inicio laboral</label><input type="date" id="ed-start-${w.id}" value="${w.inicio||''}"></div>
 <div class="fg"><label>Fin de contrato</label><input type="date" id="ed-end-${w.id}" value="${w.fin||''}"></div>
 <div class="fg"><label>PIN de fichaje</label><div style="display:flex;gap:6px;align-items:center"><input type="text" id="ed-pin-${w.id}" value="${w.pin||''}" maxlength="4" style="font-family:monospace;font-size:18px;letter-spacing:4px;font-weight:700;width:90px" placeholder="0000"><button class="btn btn-sm" onclick="regenerarPin(${w.id})" type="button">Nuevo PIN</button></div></div>
+<div class="fg"><label>DNI / NIE</label><input type="text" id="ed-doc-${w.id}" value="${w.documento||''}" placeholder="12345678A" maxlength="20"></div>
 <div class="fg" style="grid-column:span 2"><label>Horario personalizado</label>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:4px">
 <div class="fg"><label style="font-size:10px">Entrada mañana</label><input type="time" id="ed-em-${w.id}" value="${w.entrada_m||'08:30'}"></div>
@@ -2978,21 +2982,18 @@ async function exportInformeFichajesPDF(){
   const btn=document.querySelector('[onclick="exportInformeFichajesPDF()"]');
   if(btn){btn.disabled=true;btn.textContent='Generando...';}
 
-  // Load ALL fichajes
-  // Load all fichajes in batches to bypass Supabase 1000-row limit
-  let allFichs=[], page=0, pageSize=1000, done=false;
+  // ── Load all fichajes in batches (bypass Supabase 1000 row limit)
+  let allFichs=[],page=0,done=false;
   while(!done){
-    const{data,error:err}=await sb.from('fichajes')
-      .select('*')
+    const{data,error}=await sb.from('fichajes').select('*')
       .order('trabajador_id').order('fecha').order('hora')
-      .range(page*pageSize,(page+1)*pageSize-1);
-    if(err){alert('Error cargando fichajes: '+err.message);if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}return;}
-    if(data&&data.length>0){allFichs=allFichs.concat(data);page++;}
-    if(!data||data.length<pageSize) done=true;
+      .range(page*1000,(page+1)*1000-1);
+    if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}return;}
+    if(data&&data.length){allFichs=allFichs.concat(data);page++;}
+    if(!data||data.length<1000)done=true;
   }
-  const error=null;
 
-  if(error||!allFichs||!allFichs.length){
+  if(!allFichs.length){
     alert('No hay fichajes registrados.');
     if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}
     return;
@@ -3000,222 +3001,643 @@ async function exportInformeFichajesPDF(){
 
   const{jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const margin=14,pageW=210,contentW=pageW-margin*2;
+  const pW=210,pH=297,mg=14,cW=pW-mg*2;
+  const today=new Date();today.setHours(0,0,0,0);
+  const rangeStart=new Date(2025,1,1); // Feb 2025
+  const DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  // Cover page
-  doc.setFillColor(24,95,165);doc.rect(0,0,pageW,60,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255);
-  doc.text('Porxada Iberics',pageW/2,25,{align:'center'});
-  doc.setFontSize(16);doc.text('Informe de Fichajes · Mes a mes',pageW/2,38,{align:'center'});
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(200,220,255);
-  doc.text('Generado el '+new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),pageW/2,50,{align:'center'});
+  // ── Helper: new page with optional header
+  function newPage(workerName, monthLabel){
+    doc.addPage();
+    doc.setFillColor(240,244,255);
+    doc.rect(0,0,pW,12,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(80);
+    doc.text('Porxada Iberics · Informe de Fichajes',mg,8);
+    doc.text(workerName+(monthLabel?' · '+monthLabel:''),pW-mg,8,{align:'right'});
+    doc.setTextColor(0);
+    return 16;
+  }
+
+  // ── Helper: draw worker info block, returns new y
+  function drawWorkerHeader(w, y){
+    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+    const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+    const horario=w.turno==='both'?em+'-'+sm+' / '+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+    const turnoLabel=w.turno==='both'?'Mañana y tarde':w.turno==='morning'?'Solo mañana':'Solo tarde';
+    const status=workerStatus(w,today);
+    const statusLabel=status==='activo'?'Activo':status==='baja'?'De baja':status==='vac'?'Vacaciones':status==='inactivo'?'Inactivo':'Pendiente';
+    const statusColor=status==='activo'?[29,158,117]:status==='baja'?[239,159,39]:status==='inactivo'?[150,150,150]:[55,138,221];
+
+    // Header bar
+    doc.setFillColor(24,95,165);doc.rect(mg,y,cW,11,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255);
+    doc.text(w.nombre,mg+3,y+7.5);
+    // Status badge
+    doc.setFillColor(...statusColor);doc.roundedRect(pW-mg-22,y+2,22,7,2,2,'F');
+    doc.setFontSize(7.5);doc.text(statusLabel,pW-mg-11,y+6.8,{align:'center'});
+    doc.setTextColor(0);
+    y+=14;
+
+    // Info grid
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+    const col=[mg,mg+52,mg+104,mg+156];
+    const labels=[['Horas/sem:',w.horas+'h'],['Turno:',turnoLabel],['Horario:',horario],['Día libre:',DAYNAMES[w.dia_libre]||'—']];
+    labels.forEach(([l,v],i)=>{
+      doc.setTextColor(120);doc.text(l,col[i],y);
+      doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(v,col[i]+doc.getTextWidth(l)+1.5,y);
+      doc.setFont('helvetica','normal');
+    });
+    y+=5;
+
+    const col2=[mg,mg+52,mg+104];
+    const labels2=[['Inicio:',w.inicio?fmtFull(w.inicio):'—'],['Fin:',w.fin?fmtFull(w.fin):'Indefinido'],['PIN:',w.pin||'—']];
+    labels2.forEach(([l,v],i)=>{
+      doc.setTextColor(120);doc.text(l,col2[i],y);
+      doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(v,col2[i]+doc.getTextWidth(l)+1.5,y);
+      doc.setFont('helvetica','normal');
+    });
+    doc.setTextColor(0);
+    y+=7;
+    doc.setDrawColor(200);doc.setLineWidth(0.3);doc.line(mg,y,mg+cW,y);
+    return y+4;
+  }
+
+  // ── Helper: draw month header, returns new y
+  function drawMonthHeader(monthLabel, diasTrab, totalH, totalM, diasBaja, diasVac, y){
+    doc.setFillColor(230,238,255);doc.rect(mg,y,cW,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(24,95,165);
+    doc.text(monthLabel,mg+3,y+5.5);
+    const summary=diasTrab+' días trab. · '+totalH+'h '+totalM+'m'+(diasBaja?' · '+diasBaja+'d baja':'')+(diasVac?' · '+diasVac+'d vac':'');
+    doc.setFontSize(8);doc.setTextColor(60);
+    doc.text(summary,pW-mg-3,y+5.5,{align:'right'});
+    doc.setTextColor(0);
+    return y+10;
+  }
+
+  // ── Helper: draw table header row
+  function drawTableHeader(isBoth, y){
+    const heads=isBoth?['Fecha','Ent.M','Sal.M','Ent.T','Sal.T','Horas']:['Fecha','Entrada','P.Ini','P.Fin','Salida','Horas'];
+    const colW=[28,24,24,24,24,20];
+    doc.setFillColor(210,220,245);doc.rect(mg,y,cW,5.5,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(24,95,165);
+    let cx=mg;
+    heads.forEach((h,i)=>{doc.text(h,cx+1,y+4);cx+=colW[i];});
+    doc.setTextColor(0);
+    return y+5.5;
+  }
+
+  // ── Helper: draw single data row
+  function drawRow(row, ri, isBoth, y){
+    const colW=[28,24,24,24,24,20];
+    const rowH=5.2;
+    if(ri%2===0){doc.setFillColor(248,250,255);doc.rect(mg,y,cW,rowH,'F');}
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    // Color special rows
+    const cell0=String(row[0]||'');
+    const isSpecial=cell0.includes('BAJA')||cell0.includes('VAC')||cell0.includes('FESTIVO');
+    if(cell0.includes('BAJA')){doc.setFillColor(255,243,220);doc.rect(mg,y,cW,rowH,'F');doc.setTextColor(133,79,11);}
+    else if(cell0.includes('VAC')){doc.setFillColor(220,235,255);doc.rect(mg,y,cW,rowH,'F');doc.setTextColor(12,68,124);}
+    else if(cell0.includes('FESTIVO')){doc.setFillColor(238,236,255);doc.rect(mg,y,cW,rowH,'F');doc.setTextColor(60,33,150);}
+    else doc.setTextColor(26,26,26);
+    let cx=mg;
+    row.forEach((cell,i)=>{
+      const txt=String(cell||'—');
+      const max=[16,6,6,6,6,8][i];
+      doc.text(txt.length>max?txt.substring(0,max-1)+'…':txt,cx+1,y+3.8);
+      cx+=colW[i];
+    });
+    doc.setTextColor(0);
+    doc.setDrawColor(230);doc.setLineWidth(0.1);doc.line(mg,y+rowH,mg+cW,y+rowH);
+    return y+rowH;
+  }
+
+  // ── COVER PAGE
+  doc.setFillColor(24,95,165);doc.rect(0,0,pW,70,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(24);doc.setTextColor(255);
+  doc.text('Porxada Iberics',pW/2,28,{align:'center'});
+  doc.setFontSize(16);doc.text('Informe de Fichajes',pW/2,42,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(180,210,255);
+  doc.text('Generado el '+today.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),pW/2,54,{align:'center'});
+  doc.text('Desde febrero 2025 hasta hoy · '+workers.length+' trabajadores',pW/2,62,{align:'center'});
   doc.setTextColor(0);
 
-  // Summary table (all workers)
-  let y=70;
-  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(26,26,26);
-  doc.text('Resumen por trabajador',margin,y);y+=6;
-
-  const workerSummary=workers.map(w=>{
-    const wf=allFichs.filter(f=>f.trabajador_id===w.id);
-    const dias=new Set(wf.map(f=>f.fecha)).size;
-    const meses=new Set(wf.map(f=>f.fecha.substring(0,7))).size;
-    return[w.nombre,dias+' días',meses+' meses',w.horas+'h/sem'];
-  });
-
+  // Summary table on cover
+  let y=80;
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(26,26,26);
+  doc.text('Resumen general',mg,y);y+=5;
   doc.autoTable({
-    head:[['Trabajador','Días fichados','Meses','Contrato']],
-    body:workerSummary,startY:y,
-    styles:{fontSize:9,cellPadding:2},
+    head:[['Trabajador','Turno','Horario','Horas/sem','Estado']],
+    body:workers.map(w=>{
+      const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+      const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+      const hor=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+      const st2=workerStatus(w,today);
+      return[w.nombre,w.turno==='both'?'M+T':w.turno==='morning'?'M':'T',hor,w.horas+'h',st2];
+    }),
+    startY:y,styles:{fontSize:8,cellPadding:2},
     headStyles:{fillColor:[24,95,165]},
-    margin:{left:margin,right:margin}
+    margin:{left:mg,right:mg}
   });
-  y=doc.lastAutoTable.finalY+12;
 
-  // Per worker, per month detail
-  // Date range: Feb 2025 to today
-  const rangeStart=new Date(2025,1,1);
-  const rangeEnd=new Date(); rangeEnd.setHours(0,0,0,0);
-
+  // ── PER WORKER
   workers.forEach(w=>{
-    // Build set of all months worker was active in range
-    const workerStart=w.inicio?parseDate(w.inicio):rangeStart;
-    const workerEnd=w.fin?parseDate(w.fin):rangeEnd;
-    const effectiveStart=workerStart<rangeStart?rangeStart:workerStart;
-    const effectiveEnd=workerEnd>rangeEnd?rangeEnd:workerEnd;
-    if(effectiveStart>effectiveEnd) return;
-
-    // Build fichajes index for this worker
     const wf=allFichs.filter(f=>f.trabajador_id===w.id);
     const fichByDate={};
     wf.forEach(f=>{if(!fichByDate[f.fecha])fichByDate[f.fecha]=[];fichByDate[f.fecha].push(f);});
 
-    doc.addPage();
-    y=14;
+    // Build all months from contract start (or Feb 2025) to today
+    const contractStart=w.inicio?parseDate(w.inicio):rangeStart;
+    const effectiveStart=contractStart<rangeStart?rangeStart:contractStart;
+    const effectiveEnd=w.fin?parseDate(w.fin):today;
+    if(effectiveStart>today) return;
 
-    // Worker header
-    doc.setFillColor(24,95,165);doc.rect(margin,y,contentW,10,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255);
-    doc.text(w.nombre,margin+4,y+7);
-    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
-    const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
-    const horLabel=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
-    doc.setFontSize(9);doc.setTextColor(200,220,255);
-    doc.text(horLabel+' · '+w.horas+'h/sem · Libre: '+DAYNAMES[w.dia_libre],pageW-margin-4,y+7,{align:'right'});
-    doc.setTextColor(0);
-    y+=14;
-
-    // Build all months in range
-    const byMonth={};
+    // Collect all months
+    const months={};
     let d=new Date(effectiveStart);
-    while(d<=effectiveEnd){
+    while(d<=effectiveEnd&&d<=today){
       const ds=isoDate(d);
       const ym=ds.substring(0,7);
-      if(!byMonth[ym])byMonth[ym]=[];
-      byMonth[ym].push(ds);
+      if(!months[ym])months[ym]=[];
+      months[ym].push(ds);
       d.setDate(d.getDate()+1);
     }
+    if(!Object.keys(months).length) return;
 
-    Object.entries(byMonth).sort().forEach(([ym,fechas])=>{
+    // ── FIRST PAGE OF WORKER (new page + worker header)
+    y=newPage(w.nombre,'');
+    y=drawWorkerHeader(w,y);
+
+    // ── EACH MONTH
+    Object.entries(months).sort().forEach(([ym,fechas],mi)=>{
       const[yr,mo]=ym.split('-');
       const monthLabel=MONTHS[parseInt(mo)-1]+' '+yr;
 
-      // Calculate monthly totals including bajas/vac/libre
-      let totalMins=0,diasTrabajados=0,diasBaja=0,diasVac=0,diasLibre=0,diasFest=0;
-      const rows=fechas.map(fecha=>{
-        const dayFichs=fichByDate[fecha]||[];
-        const sorted=dayFichs.sort((a,b)=>a.hora.localeCompare(b.hora));
-        const pausaI=sorted.find(f=>f.tipo==='pausa_inicio');
-        const pausaF=sorted.find(f=>f.tipo==='pausa_fin');
-        const dt=new Date(fecha+'T12:00:00');
-        const dLabel=dt.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
-        const dayStatus=getDayStatus(w,dt);
-        let mins=0;
-
-        // Non-working days - show status instead of fichaje
-        if(dayStatus.type==='baja'){diasBaja++;return[dLabel,'BAJA','—','—','—','—'];}
-        if(dayStatus.type==='vac'){diasVac++;return[dLabel,'VACACIONES','—','—','—','—'];}
-        if(dayStatus.type==='festivo'){diasFest++;return[dLabel,'FESTIVO: '+(dayStatus.name||'').substring(0,12),'—','—','—','—'];}
-        if(dayStatus.type==='sunday'||dayStatus.type==='libre'){diasLibre++;return null;} // skip libre/domingo
-        if(dayStatus.type==='inactive') return null;
-
+      // Build rows for this month
+      let totalMins=0,diasTrab=0,diasBaja=0,diasVac=0,diasFest=0;
+      const rows=[];
+      fechas.forEach(fecha=>{
+        const dayDate=new Date(fecha+'T12:00:00');
+        const ds=getDayStatus(w,dayDate);
+        const dow=dayDate.getDay();
+        if(ds.type==='sunday'||ds.type==='libre') return; // skip free days
+        if(ds.type==='inactive') return;
+        const dt=dayDate.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
+        if(ds.type==='baja'){diasBaja++;rows.push([dt+' BAJA','—','—','—','—','—']);return;}
+        if(ds.type==='vac'){diasVac++;rows.push([dt+' VAC','—','—','—','—','—']);return;}
+        if(ds.type==='festivo'){diasFest++;rows.push([dt+' FEST','—','—','—','—','—']);return;}
         // Working day
+        const dayFichs=(fichByDate[fecha]||[]).sort((a,b)=>a.hora.localeCompare(b.hora));
+        const pausaI=dayFichs.find(f=>f.tipo==='pausa_inicio');
+        const pausaF=dayFichs.find(f=>f.tipo==='pausa_fin');
+        let mins=0;
         if(w.turno==='both'){
-          const entradaM=sorted.find(f=>f.tipo==='entrada')||null;
-          const salidaM=entradaM?sorted.find(f=>f.tipo==='salida'&&f.hora>entradaM.hora)||null:null;
-          const entradaT=salidaM?sorted.find(f=>f.tipo==='entrada'&&f.hora>salidaM.hora)||null:null;
-          const salidaT=entradaT?sorted.find(f=>f.tipo==='salida'&&f.hora>entradaT.hora)||null:null;
-          if(entradaM&&salidaM) mins+=timeToMins(salidaM.hora)-timeToMins(entradaM.hora);
-          if(entradaT&&salidaT) mins+=timeToMins(salidaT.hora)-timeToMins(entradaT.hora);
-          if(mins>0){totalMins+=mins;diasTrabajados++;}
-          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':(dayFichs.length?'Incompl.':'Sin fich.');
-          return[dLabel,
-            entradaM?entradaM.hora.substring(0,5):'—',
-            salidaM?salidaM.hora.substring(0,5):'—',
-            entradaT?entradaT.hora.substring(0,5):'—',
-            salidaT?salidaT.hora.substring(0,5):'—',
-            horasStr
-          ];
+          const eM=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sM=eM?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eM.hora)||null:null;
+          const eT=sM?dayFichs.find(f=>f.tipo==='entrada'&&f.hora>sM.hora)||null:null;
+          const sT=eT?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eT.hora)||null:null;
+          if(eM&&sM)mins+=timeToMins(sM.hora)-timeToMins(eM.hora);
+          if(eT&&sT)mins+=timeToMins(sT.hora)-timeToMins(eT.hora);
+          if(mins>0){totalMins+=mins;diasTrab++;}
+          rows.push([dt,eM?eM.hora.substring(0,5):'—',sM?sM.hora.substring(0,5):'—',eT?eT.hora.substring(0,5):'—',sT?sT.hora.substring(0,5):'—',mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—']);
         } else {
-          const entrada=sorted.find(f=>f.tipo==='entrada')||null;
-          const salida=sorted.find(f=>f.tipo==='salida')||null;
-          if(entrada&&salida){
-            mins=timeToMins(salida.hora)-timeToMins(entrada.hora);
-            if(pausaI&&pausaF) mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));
-          }
-          if(mins>0){totalMins+=mins;diasTrabajados++;}
-          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':(dayFichs.length?'Incompl.':'Sin fich.');
-          return[dLabel,
-            entrada?entrada.hora.substring(0,5):'—',
-            pausaI?pausaI.hora.substring(0,5):'—',
-            pausaF?pausaF.hora.substring(0,5):'—',
-            salida?salida.hora.substring(0,5):'—',
-            horasStr
-          ];
+          const en=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sa=dayFichs.find(f=>f.tipo==='salida')||null;
+          if(en&&sa){mins=timeToMins(sa.hora)-timeToMins(en.hora);if(pausaI&&pausaF)mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));}
+          if(mins>0){totalMins+=mins;diasTrab++;}
+          rows.push([dt,en?en.hora.substring(0,5):'—',pausaI?pausaI.hora.substring(0,5):'—',pausaF?pausaF.hora.substring(0,5):'—',sa?sa.hora.substring(0,5):'—',mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'—']);
         }
-      }).filter(r=>r!==null);
+      });
 
-      const totalH=Math.floor(totalMins/60),totalM=totalMins%60;
-      const objetivo=Math.round(w.horas*4.33);
-      const totalHStr=totalH+'h '+totalM+'m';
+      const totalH=Math.floor(totalMins/60),totalM2=totalMins%60;
 
-      // Check page space - always ensure we have room for header at least
-      if(y+30>285){
-        doc.addPage();y=14;
-        doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
-        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
-        doc.text(w.nombre+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);
-        y+=12;
+      // ── Each month on its own page (after first month)
+      if(mi>0){
+        y=newPage(w.nombre,monthLabel);
+        y=drawWorkerHeader(w,y);
       }
 
       // Month header
-      doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,7,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(24,95,165);
-      doc.text(monthLabel,margin+4,y+5);
-      doc.setFontSize(9);doc.setTextColor(60);
-      const extras=[]; if(diasBaja>0)extras.push(diasBaja+'d baja'); if(diasVac>0)extras.push(diasVac+'d vac'); if(diasFest>0)extras.push(diasFest+'d fest');
-      doc.text(diasTrabajados+' trab. · '+totalHStr+' / ~'+objetivo+'h'+(extras.length?' · '+extras.join(' · '):''),pageW-margin-4,y+5,{align:'right'});
-      doc.setTextColor(0);
-      y+=9;
+      y=drawMonthHeader(monthLabel,diasTrab,totalH,totalM2,diasBaja,diasVac,y);
 
-      // Draw table manually - no autoTable limit issues
-      const colW=w.turno==='both'?[22,22,22,22,22,18]:[22,22,22,22,22,18];
-      const totalColW=colW.reduce((s,c)=>s+c,0);
-      const heads=w.turno==='both'?['Fecha','Ent.M','Sal.M','Ent.T','Sal.T','Horas']:['Fecha','Entrada','P.Ini','P.Fin','Salida','Horas'];
-      const rowH2=5.5;
-
-      // Check space for header
-      if(y+rowH2*2>282){doc.addPage();y=14;
-        doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
-        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
-        doc.text(w.nombre+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);y+=12;}
+      if(!rows.length){
+        doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(150);
+        doc.text('Sin días registrados este mes.',mg+3,y+5);
+        y+=10;
+        return;
+      }
 
       // Table header
-      doc.setFillColor(200,215,240);doc.rect(margin,y,totalColW,rowH2,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(24,95,165);
-      let cx=margin;
-      heads.forEach((h2,i)=>{doc.text(h2,cx+1,y+3.8);cx+=colW[i];});
-      doc.setTextColor(0);
-      y+=rowH2;
+      y=drawTableHeader(w.turno==='both',y);
 
-      // Table rows
+      // Rows
       rows.forEach((row,ri)=>{
-        if(y+rowH2>282){
-          doc.addPage();y=14;
-          doc.setFillColor(235,241,251);doc.rect(margin,y,contentW,8,'F');
-          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(24,95,165);
-          doc.text(w.nombre+' — '+monthLabel+' (cont.)',margin+4,y+5.5);doc.setTextColor(0);y+=12;
-          // Redraw header
-          doc.setFillColor(200,215,240);doc.rect(margin,y,totalColW,rowH2,'F');
-          doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(24,95,165);
-          cx=margin;heads.forEach((h2,i)=>{doc.text(h2,cx+1,y+3.8);cx+=colW[i];});
-          doc.setTextColor(0);y+=rowH2;
+        if(y+5.5>pH-mg){
+          y=newPage(w.nombre,monthLabel);
+          y=drawWorkerHeader(w,y);
+          y=drawMonthHeader(monthLabel,diasTrab,totalH,totalM2,diasBaja,diasVac,y);
+          y=drawTableHeader(w.turno==='both',y);
         }
-        if(ri%2===0){doc.setFillColor(248,249,252);doc.rect(margin,y,totalColW,rowH2,'F');}
-        doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(26,26,26);
-        cx=margin;
-        row.forEach((cell,i)=>{
-          const txt=String(cell||'—');
-          doc.text(txt.length>10?txt.substring(0,9)+'…':txt,cx+1,y+3.8);
-          cx+=colW[i];
-        });
-        doc.setDrawColor(220);doc.setLineWidth(0.1);doc.line(margin,y+rowH2,margin+totalColW,y+rowH2);
-        y+=rowH2;
+        y=drawRow(row,ri,w.turno==='both',y);
       });
-      y+=2;
-      if(y>270){doc.addPage();y=14;}
 
-      // Month summary row
-      doc.setFillColor(240,242,246);doc.rect(margin,y,contentW,6,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(26,26,26);
-      doc.text('Total '+monthLabel+': '+totalHStr+' en '+diasTrabajados+' dias trabajados',margin+4,y+4);
+      // Month total footer
+      y+=2;
+      doc.setFillColor(220,230,250);doc.rect(mg,y,cW,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(24,95,165);
+      const objetivo=Math.round(w.horas*4.33);
+      doc.text('TOTAL '+monthLabel.toUpperCase()+': '+totalH+'h '+totalM2+'m en '+diasTrab+' días trabajados  ·  Objetivo ~'+objetivo+'h'+(diasBaja?' · '+diasBaja+'d baja':'')+(diasVac?' · '+diasVac+'d vac':''),mg+3,y+4.2);
       doc.setTextColor(0);
       y+=10;
     });
   });
 
   if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Informe completo mes a mes (PDF)';}
-  doc.save('informe-fichajes-completo-'+isoDate(new Date())+'.pdf');
+  doc.save('informe-fichajes-'+isoDate(new Date())+'.pdf');
+}
+
+
+async function exportInformeXLS(){
+  const btn=document.querySelector('[onclick="exportInformeXLS()"]');
+  if(btn){btn.disabled=true;btn.textContent='Generando...';}
+
+  // Load all fichajes in batches
+  let allFichs=[],page=0,done=false;
+  while(!done){
+    const{data,error}=await sb.from('fichajes').select('*')
+      .order('trabajador_id').order('fecha').order('hora')
+      .range(page*1000,(page+1)*1000-1);
+    if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='\u{1F4CA} Informe mes a mes (Excel)';}return;}
+    if(data&&data.length){allFichs=allFichs.concat(data);page++;}
+    if(!data||data.length<1000)done=true;
+  }
+
+  if(!allFichs.length){alert('No hay fichajes registrados.');if(btn){btn.disabled=false;btn.textContent='\u{1F4CA} Informe mes a mes (Excel)';}return;}
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const rangeStart=new Date(2025,1,1);
+  const wb=XLSX.utils.book_new();
+
+  // ── RESUMEN sheet
+  const summaryData=[
+    ['PORXADA IBERICS · INFORME DE FICHAJES'],
+    ['Generado el: '+today.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})],
+    [],
+    ['Trabajador','Turno','Horario','Horas/sem','Inicio','Fin','Estado']
+  ];
+  workers.forEach(w=>{
+    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+    const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+    const hor=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+    const status=workerStatus(w,today);
+    summaryData.push([w.nombre,w.turno==='both'?'Mañana y tarde':w.turno==='morning'?'Solo mañana':'Solo tarde',hor,w.horas,w.inicio||'',w.fin||'Indefinido',status]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Resumen');
+
+  // ── One sheet per worker
+  for(const w of workers){
+    const fichByDate={};
+    allFichs.filter(f=>f.trabajador_id===w.id).forEach(f=>{
+      if(!fichByDate[f.fecha])fichByDate[f.fecha]=[];
+      fichByDate[f.fecha].push(f);
+    });
+
+    const contractStart=w.inicio?parseDate(w.inicio):rangeStart;
+    const effectiveStart=contractStart<rangeStart?rangeStart:contractStart;
+    const effectiveEnd=w.fin?parseDate(w.fin):today;
+    if(effectiveStart>today) return;
+
+    const em=(w.entrada_m||'08:30').substring(0,5),sm=(w.salida_m||'14:00').substring(0,5);
+    const et=(w.entrada_t||'17:00').substring(0,5),st=(w.salida_t||'22:00').substring(0,5);
+    const hor=w.turno==='both'?em+'-'+sm+'/'+et+'-'+st:w.turno==='morning'?em+'-'+sm:et+'-'+st;
+
+    const sheetData=[
+      ['TRABAJADOR: '+w.nombre],
+      ['Horas/sem: '+w.horas+'h  |  Turno: '+(w.turno==='both'?'Mañana y tarde':w.turno==='morning'?'Solo mañana':'Solo tarde')+'  |  Horario: '+hor],
+      ['Inicio: '+(w.inicio?fmtFull(w.inicio):'—')+'  |  Fin: '+(w.fin?fmtFull(w.fin):'Indefinido')+'  |  Día libre: '+DAYNAMES[w.dia_libre]],
+      []
+    ];
+
+    const isBoth=w.turno==='both';
+    let grandTotalMins=0,grandDiasTrab=0,grandBaja=0,grandVac=0;
+
+    // Build months
+    const months={};
+    let d=new Date(effectiveStart);
+    while(d<=effectiveEnd&&d<=today){
+      const ds=isoDate(d);
+      const ym=ds.substring(0,7);
+      if(!months[ym])months[ym]=[];
+      months[ym].push(ds);
+      d.setDate(d.getDate()+1);
+    }
+
+    for(const [ym,fechas] of Object.entries(months).sort()){
+      const[yr,mo]=ym.split('-');
+      const monthLabel=MONTHS[parseInt(mo)-1]+' '+yr;
+      let totalMins=0,diasTrab=0,diasBaja=0,diasVac=0;
+
+      // Month header
+      sheetData.push([monthLabel.toUpperCase()]);
+      if(isBoth){
+        sheetData.push(['Fecha','Ent. Mañana','Sal. Mañana','Ent. Tarde','Sal. Tarde','Horas trabajadas','Estado']);
+      } else {
+        sheetData.push(['Fecha','Entrada','Pausa inicio','Pausa fin','Salida','Horas trabajadas','Estado']);
+      }
+
+      fechas.forEach(fecha=>{
+        const dayDate=new Date(fecha+'T12:00:00');
+        const ds=getDayStatus(w,dayDate);
+        if(ds.type==='sunday'||ds.type==='libre'||ds.type==='inactive') return;
+        const dLabel=dayDate.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
+        if(ds.type==='baja'){diasBaja++;grandBaja++;sheetData.push([dLabel,'BAJA','','','','','Baja']);return;}
+        if(ds.type==='vac'){diasVac++;grandVac++;sheetData.push([dLabel,'VACACIONES','','','','','Vacaciones']);return;}
+        if(ds.type==='festivo'){sheetData.push([dLabel,'FESTIVO','','','','','Festivo']);return;}
+        const dayFichs=(fichByDate[fecha]||[]).sort((a,b)=>a.hora.localeCompare(b.hora));
+        const pausaI=dayFichs.find(f=>f.tipo==='pausa_inicio');
+        const pausaF=dayFichs.find(f=>f.tipo==='pausa_fin');
+        let mins=0;
+        if(isBoth){
+          const eM=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sM=eM?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eM.hora)||null:null;
+          const eT=sM?dayFichs.find(f=>f.tipo==='entrada'&&f.hora>sM.hora)||null:null;
+          const sT=eT?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eT.hora)||null:null;
+          if(eM&&sM)mins+=timeToMins(sM.hora)-timeToMins(eM.hora);
+          if(eT&&sT)mins+=timeToMins(sT.hora)-timeToMins(eT.hora);
+          if(mins>0){totalMins+=mins;diasTrab++;grandTotalMins+=mins;grandDiasTrab++;}
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'Sin fichaje completo';
+          sheetData.push([dLabel,eM?eM.hora.substring(0,5):'',sM?sM.hora.substring(0,5):'',eT?eT.hora.substring(0,5):'',sT?sT.hora.substring(0,5):'',horasStr,'Trabajado']);
+        } else {
+          const en=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sa=dayFichs.find(f=>f.tipo==='salida')||null;
+          if(en&&sa){mins=timeToMins(sa.hora)-timeToMins(en.hora);if(pausaI&&pausaF)mins-=(timeToMins(pausaF.hora)-timeToMins(pausaI.hora));}
+          if(mins>0){totalMins+=mins;diasTrab++;grandTotalMins+=mins;grandDiasTrab++;}
+          const horasStr=mins>0?Math.floor(mins/60)+'h '+(mins%60)+'m':'Sin fichaje completo';
+          sheetData.push([dLabel,en?en.hora.substring(0,5):'',pausaI?pausaI.hora.substring(0,5):'',pausaF?pausaF.hora.substring(0,5):'',sa?sa.hora.substring(0,5):'',horasStr,'Trabajado']);
+        }
+      });
+
+      const tH=Math.floor(totalMins/60),tM=totalMins%60;
+      const obj=Math.round(w.horas*4.33);
+      sheetData.push(['TOTAL '+monthLabel,diasTrab+' días trabajados',Math.floor(totalMins/60)+'h '+(totalMins%60)+'m','Objetivo ~'+obj+'h',diasBaja+'d baja',diasVac+'d vac','']);
+      sheetData.push([]);
+    }
+
+    // Grand total
+    const gH=Math.floor(grandTotalMins/60),gM=grandTotalMins%60;
+    sheetData.push([]);
+    sheetData.push(['TOTAL GENERAL',grandDiasTrab+' días trabajados',gH+'h '+gM+'m','','Bajas: '+grandBaja+'d','Vacaciones: '+grandVac+'d','']);
+
+    // Sheet name max 31 chars, no special chars
+    const sheetName=w.nombre.substring(0,28).replace(/[:/\\?*[\]]/g,'').trim();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), sheetName||'Trabajador');
+  }
+
+  XLSX.writeFile(wb, 'informe-fichajes-'+isoDate(new Date())+'.xlsx');
+  if(btn){btn.disabled=false;btn.textContent='\u{1F4CA} Informe mes a mes (Excel)';}
+}
+
+
+// ══ GENERAR WORD REGISTRO JORNADA ════════════════════════════
+async function generarWordRegistros(){
+  const btn=document.querySelector('[onclick="generarWordRegistros()"]');
+  if(btn){btn.disabled=true;btn.textContent='Generando...';}
+
+  // Load all fichajes
+  let allFichs=[],page=0,done=false;
+  while(!done){
+    const{data,error}=await sb.from('fichajes').select('*')
+      .order('trabajador_id').order('fecha').order('hora')
+      .range(page*1000,(page+1)*1000-1);
+    if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Registro jornada (Word)';}return;}
+    if(data&&data.length){allFichs=allFichs.concat(data);page++;}
+    if(!data||data.length<1000)done=true;
+  }
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const rangeStart=new Date(2025,1,1);
+
+  // One ZIP with one .docx per worker per month
+  // Since we can't use docx library inline, generate HTML that mimics the Word table
+  // and save as .html files the user can open and print/save from Word
+  // Actually: generate a proper docx using docx-js loaded from CDN via dynamic import
+
+  // Build XML directly for each worker/month
+  const ZIP = window.JSZip; // need JSZip
+
+  // Load JSZip dynamically if not present
+  if(!window.JSZip){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload=res;s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const zip=new JSZip();
+  let docCount=0;
+
+  for(const w of workers){
+    const fichByDate={};
+    allFichs.filter(f=>f.trabajador_id===w.id).forEach(f=>{
+      if(!fichByDate[f.fecha])fichByDate[f.fecha]=[];
+      fichByDate[f.fecha].push(f);
+    });
+
+    const contractStart=w.inicio?parseDate(w.inicio):rangeStart;
+    const effectiveStart=contractStart<rangeStart?rangeStart:contractStart;
+    const effectiveEnd=w.fin?parseDate(w.fin):today;
+    if(effectiveStart>today) return;
+
+    // Build months
+    const months={};
+    let d=new Date(effectiveStart);
+    while(d<=effectiveEnd&&d<=today){
+      const ds=isoDate(d);
+      const ym=ds.substring(0,7);
+      if(!months[ym])months[ym]=[];
+      months[ym].push(ds);
+      d.setDate(d.getDate()+1);
+    }
+
+    for(const [ym,fechas] of Object.entries(months).sort()){
+      const[yr,mo]=ym.split('-');
+      const monthLabel=MONTHS[parseInt(mo)-1].toUpperCase()+' '+yr;
+      const daysInMonth=new Date(parseInt(yr),parseInt(mo),0).getDate();
+      const fechaDoc=new Date(parseInt(yr),parseInt(mo),0).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+
+      // Build rows for each day 1-31
+      const dayRows=[];
+      for(let day=1;day<=31;day++){
+        if(day>daysInMonth){dayRows.push({day,entM:'',entT:'',salM:'',salT:'',total:''});continue;}
+        const fecha=yr+'-'+String(parseInt(mo)).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        const dayDate=new Date(fecha+'T12:00:00');
+        const ds=getDayStatus(w,dayDate);
+        if(ds.type==='sunday'||ds.type==='libre'){dayRows.push({day,entM:'L',entT:'',salM:'',salT:'',total:'LIBRE'});continue;}
+        if(ds.type==='baja'){dayRows.push({day,entM:'',entT:'',salM:'',salT:'',total:'BAJA'});continue;}
+        if(ds.type==='vac'){dayRows.push({day,entM:'',entT:'',salM:'',salT:'',total:'VAC.'});continue;}
+        if(ds.type==='festivo'){dayRows.push({day,entM:'',entT:'',salM:'',salT:'',total:'FEST.'});continue;}
+        if(ds.type==='inactive'){dayRows.push({day,entM:'-',entT:'-',salM:'-',salT:'-',total:'-'});continue;}
+
+        const dayFichs=(fichByDate[fecha]||[]).sort((a,b)=>a.hora.localeCompare(b.hora));
+        let entM='',entT='',salM='',salT='',total='';
+        if(w.turno==='both'){
+          const eM=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sM=eM?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eM.hora)||null:null;
+          const eT=sM?dayFichs.find(f=>f.tipo==='entrada'&&f.hora>sM.hora)||null:null;
+          const sT=eT?dayFichs.find(f=>f.tipo==='salida'&&f.hora>eT.hora)||null:null;
+          entM=eM?eM.hora.substring(0,5):'';
+          salM=sM?sM.hora.substring(0,5):'';
+          entT=eT?eT.hora.substring(0,5):'';
+          salT=sT?sT.hora.substring(0,5):'';
+          let mins=0;
+          if(eM&&sM)mins+=timeToMins(sM.hora)-timeToMins(eM.hora);
+          if(eT&&sT)mins+=timeToMins(sT.hora)-timeToMins(eT.hora);
+          if(mins>0)total=Math.floor(mins/60)+'h '+(mins%60)+'m';
+        } else {
+          const en=dayFichs.find(f=>f.tipo==='entrada')||null;
+          const sa=dayFichs.find(f=>f.tipo==='salida')||null;
+          const pI=dayFichs.find(f=>f.tipo==='pausa_inicio');
+          const pF=dayFichs.find(f=>f.tipo==='pausa_fin');
+          if(w.turno==='morning'){entM=en?en.hora.substring(0,5):'';salM=sa?sa.hora.substring(0,5):'';}
+          else{entT=en?en.hora.substring(0,5):'';salT=sa?sa.hora.substring(0,5):'';}
+          let mins=0;
+          if(en&&sa){mins=timeToMins(sa.hora)-timeToMins(en.hora);if(pI&&pF)mins-=(timeToMins(pF.hora)-timeToMins(pI.hora));}
+          if(mins>0)total=Math.floor(mins/60)+'h '+(mins%60)+'m';
+        }
+        dayRows.push({day,entM,entT,salM,salT,total});
+      }
+
+      // Generate DOCX XML
+      const docxml=buildRegistroXML(w,monthLabel,fechaDoc,dayRows);
+      const filename=w.nombre.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ym+'.docx';
+      zip.file(filename, await docxml);
+      docCount++;
+    }
+  }
+
+  const content=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(content);
+  a.download='registros_jornada_'+isoDate(new Date())+'.zip';
+  a.click();
+  if(btn){btn.disabled=false;btn.textContent='\u{1F4C4} Registro jornada (Word)';}
+  alert(docCount+' documentos generados en el ZIP.');
+}
+
+function buildRegistroXML(w,monthLabel,fechaDoc,dayRows){
+  // Build a minimal valid DOCX with the same structure as the template
+  // Using the same table layout: 11 columns, 31 day rows
+  const empresa='PORXADA IB\u00c9RICS XARCUTERIA DEGUSTACI\u00d3 SL';
+  const cif='B64322654';
+  const nombre=w.nombre;
+  const doc=w.documento||'';
+
+  function cell(text,w_dxa,bold,center,span,fill,sz){
+    const jc=center?'<w:jc w:val="center"/>':'';
+    const b=bold?'<w:b/><w:bCs/>':'';
+    const shd=fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:'';
+    const gs=span>1?`<w:gridSpan w:val="${span}"/>`:'';
+    const fontSize=sz||20;
+    return `<w:tc><w:tcPr><w:tcW w:w="${w_dxa}" w:type="dxa"/>${gs}${shd}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr>${jc}<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${b}<w:sz w:val="${fontSize}"/><w:szCs w:val="${fontSize}"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${b}<w:sz w:val="${fontSize}"/><w:szCs w:val="${fontSize}"/></w:rPr><w:t xml:space="preserve">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</w:t></w:r></w:p></w:tc>`;
+  }
+
+  function dayRow(r){
+    const bg=r.total==='LIBRE'?'E8E8E8':r.total==='BAJA'?'FFE0B2':r.total==='VAC.'?'BBDEFB':r.total==='FEST.'?'E8EAF6':r.total==='-'?'F5F5F5':'';
+    return `<w:tr><w:trPr><w:trHeight w:val="319"/></w:trPr>`+
+      cell(String(r.day),978,false,true,1,bg)+
+      cell(r.entM,1487,false,true,2,bg)+
+      cell(r.entT,1488,false,true,1,bg)+
+      cell(r.salM,1487,false,true,1,bg)+
+      cell(r.salT,1488,false,true,2,bg)+
+      cell('',1169,false,true,2,bg)+
+      cell('',1169,false,true,1,bg)+
+      cell(r.total,1170,false,true,1,bg)+
+      `</w:tr>`;
+  }
+
+  const bodyRows=dayRows.map(dayRow).join('');
+
+  const body=`
+<w:tbl>
+  <w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr>
+  <w:tblGrid>
+    <w:gridCol w:w="978"/><w:gridCol w:w="589"/><w:gridCol w:w="898"/>
+    <w:gridCol w:w="1488"/><w:gridCol w:w="1487"/><w:gridCol w:w="1186"/>
+    <w:gridCol w:w="302"/><w:gridCol w:w="978"/><w:gridCol w:w="191"/>
+    <w:gridCol w:w="1169"/><w:gridCol w:w="1170"/>
+  </w:tblGrid>
+  <w:tr><w:trPr><w:trHeight w:val="1239"/></w:trPr>
+    <w:tc><w:tcPr><w:tcW w:w="10436" w:type="dxa"/><w:gridSpan w:val="11"/></w:tcPr>
+      <w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:bCs/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:pPr>
+        <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:bCs/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr><w:t>REGISTRO DE LA JORNADA DE LOS TRABAJADORES</w:t></w:r></w:p>
+      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/></w:rPr><w:t>En cumplimiento de la obligaci\u00f3n establecida en el art\u00edculo 34.9 del Real Decreto Legislativo 2/2015</w:t></w:r></w:p>
+    </w:tc>
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="423"/></w:trPr>
+    ${cell('EMPRESA',1567,true,false,2,'D9D9D9',22)}${cell(empresa,5059,false,false,4,'D9D9D9',22)}${cell('CIF',1280,true,true,2,'D9D9D9',22)}${cell(cif,2530,false,false,3,'D9D9D9',22)}
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="423"/></w:trPr>
+    ${cell('TRABAJADOR',1567,true,false,2,'D9D9D9',22)}${cell(nombre,5059,false,false,4,'D9D9D9',22)}${cell('DNI / NIE',1280,true,true,2,'D9D9D9',22)}${cell(doc,2530,false,false,3,'D9D9D9',22)}
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="423"/></w:trPr>
+    ${cell('MES',1567,true,false,2,'D9D9D9',22)}${cell(monthLabel,8869,false,false,9,'D9D9D9',22)}
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="319"/></w:trPr>
+    ${cell('DIA',978,true,true,1,'D9D9D9',20)}${cell('REGISTROS ENTRADA',2975,true,true,3,'D9D9D9',22)}${cell('REGISTRO SALIDA',2975,true,true,3,'D9D9D9',22)}${cell('H. COMP',1169,true,true,2,'D9D9D9',22)}${cell('H. EXT.',1169,true,true,1,'D9D9D9',22)}${cell('TOTAL DIA',1170,true,true,1,'D9D9D9',22)}
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="319"/></w:trPr>
+    ${cell('',978,false,true,1)}${cell('EntM',1487,false,true,2)}${cell('EntT',1488,false,true,1)}${cell('SalM',1487,false,true,1)}${cell('SalT',1488,false,true,2)}${cell('',1169,false,true,2)}${cell('',1169,false,true,1)}${cell('',1170,false,true,1)}
+  </w:tr>
+  ${bodyRows}
+</w:tbl>
+<w:p><w:r><w:t>En Granollers, ${fechaDoc}</w:t></w:r></w:p>
+<w:tbl>
+  <w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/></w:tblBorders></w:tblPr>
+  <w:tblGrid><w:gridCol w:w="5381"/><w:gridCol w:w="5381"/></w:tblGrid>
+  <w:tr>
+    <w:tc><w:tcPr><w:tcW w:w="5381" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>Fdo: LA EMPRESA</w:t></w:r></w:p></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="5381" w:type="dxa"/><w:tcBorders><w:bottom w:val="single" w:sz="12" w:space="0" w:color="auto"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>Fdo: EL TRABAJADOR</w:t></w:r></w:p></w:tc>
+  </w:tr>
+  <w:tr><w:trPr><w:trHeight w:val="1197"/></w:trPr>
+    <w:tc><w:tcPr><w:tcW w:w="5381" w:type="dxa"/><w:tcBorders><w:right w:val="single" w:sz="12" w:space="0" w:color="auto"/></w:tcBorders></w:tcPr><w:p/></w:tc>
+    <w:tc><w:tcPr><w:tcW w:w="5381" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="12" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="12" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="12" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="12" w:space="0" w:color="auto"/></w:tcBorders></w:tcPr><w:p/></w:tc>
+  </w:tr>
+</w:tbl>`;
+
+  // Build full DOCX (minimal valid structure)
+  const docXML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>${body}
+    <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="567" w:right="567" w:bottom="567" w:left="567"/></w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const relsXML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const wordRelsXML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`;
+
+  const contentTypesXML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  // Pack into DOCX (zip)
+  const docZip=new JSZip();
+  docZip.file('[Content_Types].xml',contentTypesXML);
+  docZip.file('_rels/.rels',relsXML);
+  docZip.file('word/document.xml',docXML);
+  docZip.file('word/_rels/document.xml.rels',wordRelsXML);
+
+  // Return as Uint8Array synchronously - need to return promise
+  return docZip.generateAsync({type:'uint8array'});
 }
 
 function changeWeek(n){weekOffset+=n;renderSchedule();if(document.getElementById('sumView')?.value==='weekly')renderSummary();}
